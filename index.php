@@ -3,32 +3,36 @@ session_start();
 
 $path = isset($_GET['path']) ? trim($_GET['path'], '/') : '';
 
-// Routing Halaman Utama / Views
+// Normalisasi jika request menyertakan prefix 'app/' dari BASE_URL
+if (str_starts_with($path, 'app/')) {
+    $path = substr($path, 4);
+}
+
 switch ($path) {
     case '':
     case 'login':
-        require 'pages/login.php';
+        require 'app/views/login.php'; // Diubah dari pages/login.php
         break;
         
     case 'dashboard':
-        require 'pages/dashboard.php';
+        require 'app/views/dashboard.php'; // Disesuaikan ke folder views
         break;
         
     case 'semester':
-        require 'pages/semester.php';
+        require 'app/views/semester.php'; // Disesuaikan ke folder views
         break;
         
     case 'task/detail':
-        require 'pages/task_detail.php';
+        require 'app/views/task_detail.php'; // Disesuaikan ke folder views
         break;
         
     case 'settings':
-        require 'pages/settings.php';
+        require 'app/views/settings.php'; // Disesuaikan ke folder views
         break;
 
     // Routing API Endpoint
     case 'api/auth/google':
-        require 'api/auth_callback.php';
+        require 'app/api/auth/google_redirect.php';
         break;
 
     default:
@@ -36,4 +40,3 @@ switch ($path) {
         echo "<h1>404 - Halaman Tidak Ditemukan</h1>";
         break;
 }
-?>

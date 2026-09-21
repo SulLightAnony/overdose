@@ -1,16 +1,13 @@
 <?php
-// Pastikan session sudah berjalan di setiap halaman/endpoint
+// Memastikan config terjangkau agar BASE_URL selalu terdefinisi
+require_once __DIR__ . '/../config/config.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 /**
  * Mengirimkan respon JSON berseragam dan menghentikan eksekusi skrip.
- *
- * @param bool   $status  TRUE jika berhasil, FALSE jika gagal/error.
- * @param string $message Pesan deskriptif untuk frontend/user.
- * @param mixed  $data    Data opsional yang ingin dikirimkan (array/object).
- * @param int    $code    HTTP Response Code (default: 200 OK).
  */
 function jsonResponse(bool $status, string $message, $data = null, int $code = 200): void {
     http_response_code($code);
@@ -27,40 +24,38 @@ function jsonResponse(bool $status, string $message, $data = null, int $code = 2
 }
 
 /**
- * Memeriksa apakah pengguna sudah terautentikasi (login).
- * Jika via API (header meminta JSON), kirim respon JSON 401.
- * Jika via browser biasa, arahkan (redirect) ke halaman login.
+ * Memeriksa apakah permintaan saat ini menuju endpoint API
+ */
+function isApiRequest(): bool {
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    return str_contains($uri, '/api/') || str_contains($accept, 'application/json');
+}
+
+/**
+ * Memeriksa apakah pengguna sudah terautentikasi (login)
  */
 function requireAuth(): void {
     if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-        // Cek apakah request datang dari Fetch/AJAX (API Call)
-        $isApi = isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json');
-
-        if ($isApi) {
+        if (isApiRequest()) {
             jsonResponse(false, 'Akses ditolak. Silakan login terlebih dahulu.', null, 401);
         } else {
-            header('Location: /login');
+            header('Location: ' . BASE_URL . 'login');
             exit;
         }
     }
 }
 
 /**
- * Memeriksa apakah pengguna memiliki role/tingkat hak akses yang diizinkan.
- * Contoh penggunaan: requireRole(['primordial', 'sepuh']);
- *
- * @param array $allowedRoles Daftar role yang diizinkan (misal: ['primordial'], ['primordial', 'sepuh']).
+ * Memeriksa apakah pengguna memiliki role/tingkat hak akses yang diizinkan
  */
 function requireRole(array $allowedRoles): void {
-    // Pastikan user sudah login terlebih dahulu
     requireAuth();
 
     $userRole = $_SESSION['role_level'] ?? 'member';
 
     if (!in_array($userRole, $allowedRoles, true)) {
-        $isApi = isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json');
-
-        if ($isApi) {
+        if (isApiRequest()) {
             jsonResponse(false, 'Anda tidak memiliki hak akses (role) untuk melakukan aksi ini.', null, 403);
         } else {
             http_response_code(403);
@@ -71,9 +66,7 @@ function requireRole(array $allowedRoles): void {
 }
 
 /**
- * Helper opsional untuk mendapatkan data session user yang sedang login saat ini.
- *
- * @return array|null
+ * Mendapatkan data sesi pengguna saat ini
  */
 function getCurrentUser(): ?array {
     if (!isset($_SESSION['user_id'])) {

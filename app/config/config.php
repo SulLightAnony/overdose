@@ -1,5 +1,5 @@
 <?php
-// Parser .env dengan cek root proyek (/overdose/.env)
+// Parser .env dengan penanganan tanda kutip dan komentar inline
 $envPath = __DIR__ . '/../../.env';
 if (!file_exists($envPath)) {
     $envPath = __DIR__ . '/../.env';
@@ -8,12 +8,21 @@ if (!file_exists($envPath)) {
 if (file_exists($envPath)) {
     $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
-        if (str_starts_with(trim($line), '#')) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#')) {
             continue;
         }
+        
+        // Hapus komentar inline jika ada
+        if (str_contains($line, ' #')) {
+            $line = explode(' #', $line, 2)[0];
+        }
+        
         if (str_contains($line, '=')) {
             list($name, $value) = explode('=', $line, 2);
-            $_ENV[trim($name)] = trim($value);
+            $name = trim($name);
+            $value = trim(trim($value), "\"'"); // Hapus tanda kutip tunggal/ganda
+            $_ENV[$name] = $value;
         }
     }
 }
@@ -24,6 +33,10 @@ date_default_timezone_set('Asia/Jakarta');
 
 define('GOOGLE_CLIENT_ID', $_ENV['GOOGLE_CLIENT_ID'] ?? '');
 define('GOOGLE_CLIENT_SECRET', $_ENV['GOOGLE_CLIENT_SECRET'] ?? '');
+
+// Deteksi protokol otomatis (http / https)
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
 if ($online) {
     define('BASE_URL', 'https://overdose.moboidgroup.com/app/');

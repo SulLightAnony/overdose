@@ -90,7 +90,6 @@ Dokumen ini mengatur urutan pengerjaan pengembangan sistem aplikasi **Overdose**
 3. **Konfigurasi Google OAuth Client:**
    * Buat *Credentials OAuth 2.0* di Google Cloud Console.
    * Masukkan `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_SECRET` ke file konfigurasi backend.
-   * Atur *Redirect URI* ke `http://localhost/overdose/api/auth/google_callback.php`.
 
 ---
 
