@@ -1,0 +1,8 @@
+RewriteEngine On
+
+# Izinkan akses langsung ke folder assets atau file yang benar-benar ada
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Arahkan semua request ke index.php dengan parameter path
+RewriteRule ^(.*)$ index.php?path=$1 [QSA,L]

@@ -1,0 +1,15 @@
+# Konfigurasi Lingkungan Sensitif
+.env
+
+# Direktori Dependensi & Vendor (Jika ada)
+/vendor/
+/node_modules/
+
+# Berkas Sistem Operasi & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Berkas Log / Temporary
+*.log
