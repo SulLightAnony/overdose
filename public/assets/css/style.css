@@ -1,163 +1,152 @@
 /* ==========================================================================
-   OVERDOSE - MAIN & LOGIN CUSTOM STYLES
+   OVERDOSE - CLEAN MINIMALIST LOGIN STYLES
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-:root {
-    --bg-dark: #0f172a;
-    --bg-card: rgba(30, 41, 59, 0.7);
-    --border-card: rgba(255, 255, 255, 0.1);
-    --accent-blue: #3b82f6;
-    --accent-indigo: #6366f1;
-    --accent-hover: #2563eb;
-    --text-primary: #f8fafc;
-    --text-muted: #94a3b8;
-}
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 body.login-body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    background-color: var(--bg-dark);
-    color: var(--text-primary);
+    background-color: #ffffff;
+    color: #0f172a;
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-x: hidden;
-    position: relative;
+    margin: 0;
+    padding: 1rem;
+    overflow: hidden;
 }
 
-/* Background Glowing Orbs */
-body.login-body::before,
-body.login-body::after {
-    content: '';
-    position: absolute;
-    width: 350px;
-    height: 350px;
-    border-radius: 50%;
-    filter: blur(120px);
-    z-index: 0;
-    pointer-events: none;
-}
-
-body.login-body::before {
-    background: rgba(59, 130, 246, 0.25);
-    top: 15%;
-    left: 15%;
-}
-
-body.login-body::after {
-    background: rgba(99, 102, 241, 0.2);
-    bottom: 15%;
-    right: 15%;
-}
-
-/* Glassmorphism Login Card */
-.login-card {
-    position: relative;
-    z-index: 1;
-    background: var(--bg-card);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--border-card);
-    border-radius: 24px;
-    padding: 2.5rem 2rem;
+.login-container {
     width: 100%;
-    max-width: 440px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+
+    & .wave-svg{
+        width:100vw;
+        position:absolute;
+        bottom:0px;
+    }
 }
 
-.login-card:hover {
-    border-color: rgba(255, 255, 255, 0.18);
-    box-shadow: 0 30px 60px -12px rgba(59, 130, 246, 0.15);
-}
-
-/* Logo & Typography */
+/* Logo Diperbesar */
 .brand-logo {
-    max-height: 52px;
+    max-height: 200px;
     width: auto;
     object-fit: contain;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
-    transition: transform 0.3s ease;
+    margin-bottom: 2.25rem;
 }
 
-.brand-logo:hover {
-    transform: scale(1.04);
-}
-
-.tagline-badge {
-    display: inline-block;
-    padding: 0.35rem 0.9rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #60a5fa;
-    background: rgba(59, 130, 246, 0.12);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    border-radius: 50px;
-}
-
-/* Google Login Button */
+/* Google OAuth Button */
 .btn-google {
+    position: relative;
     background: #ffffff;
     color: #1e293b;
     font-weight: 600;
     font-size: 0.95rem;
-    padding: 0.85rem 1.25rem;
-    border-radius: 14px;
-    border: none;
+    padding: 0.9rem 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 12px;
     width: 100%;
     text-decoration: none;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    z-index: 1;
+}
+
+/* Animasi Stroke Border Mengelilingi dari Bawah Tengah ke Atas Tengah */
+.btn-google::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 14px;
+    padding: 2.5px;
+    /* Warna kontras khas Google tanpa gradien halus */
+    background: linear-gradient(
+        90deg, 
+        #34a853 0%, 
+        #fbbc05 25%, 
+        #ea4335 50%, 
+        #4285f4 75%, 
+        #34a853 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    /* Mulai dari titik tengah bawah tertutup, lalu membuka ke samping dan atas */
+    clip-path: inset(50% 50% 50% 50% round 14px);
+    transition: clip-path 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
 }
 
 .btn-google:hover {
-    background: #f8fafc;
-    color: #0f172a;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.25);
+    background-color: #f8fafc;
+    transform: translateY(-1px);
 }
 
-.btn-google:active {
-    transform: translateY(0);
+.btn-google:hover::before {
+    opacity: 1;
+    /* Membuka penuh mengelilingi seluruh tombol */
+    clip-path: inset(0% 0% 0% 0% round 14px);
 }
 
 .google-icon {
     width: 20px;
     height: 20px;
+    flex-shrink: 0;
+}
+
+/* Teks Our Sanctuary (Tanpa Ikon) */
+.sanctuary-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    letter-spacing: 0.08em;
+    margin-top: 1.75rem;
+    margin-bottom: 0;
+}
+
+/* Footer Made by Almusayid */
+.creator-footer {
+    margin-top: 2.5rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
 }
 
 /* Custom Alert Error */
 .alert-custom-danger {
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
-    border-radius: 12px;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    border-radius: 10px;
     font-size: 0.85rem;
+    width: 100%;
+    margin-bottom: 1.25rem;
 }
 
-/* Footer Link */
-.login-footer-text {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-/* Keyframe Animations */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
+@media (min-width: 750px) {
+    .wave-svg{
+        transform: translateY(50px);
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+}
+
+@media (min-width: 1000px) {
+    .wave-svg{
+        transform: translateY(100px);
+    }
+}
+
+@media (min-width: 1250px) {
+    .wave-svg{
+        transform: translateY(150px);
     }
 }

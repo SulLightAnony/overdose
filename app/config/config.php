@@ -9,41 +9,32 @@ if (file_exists($envPath)) {
     $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
         $line = trim($line);
-        if ($line === '' || str_starts_with($line, '#')) {
-            continue;
-        }
-        
-        // Hapus komentar inline jika ada
-        if (str_contains($line, ' #')) {
-            $line = explode(' #', $line, 2)[0];
-        }
-        
+        if ($line === '' || str_starts_with($line, '#')) continue;
+        if (str_contains($line, ' #')) $line = explode(' #', $line, 2)[0];
         if (str_contains($line, '=')) {
             list($name, $value) = explode('=', $line, 2);
-            $name = trim($name);
-            $value = trim(trim($value), "\"'"); // Hapus tanda kutip tunggal/ganda
-            $_ENV[$name] = $value;
+            $_ENV[trim($name)] = trim(trim($value), "\"'");
         }
     }
 }
 
 $online = filter_var($_ENV['ONLINE'] ?? false, FILTER_VALIDATE_BOOLEAN);
-
 date_default_timezone_set('Asia/Jakarta');
 
 define('GOOGLE_CLIENT_ID', $_ENV['GOOGLE_CLIENT_ID'] ?? '');
 define('GOOGLE_CLIENT_SECRET', $_ENV['GOOGLE_CLIENT_SECRET'] ?? '');
 
-// Deteksi protokol otomatis (http / https)
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+// Deteksi Protokol & Host Otomatis (Anti Mixed Content)
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? 80) == 443) ? "https://" : "http://";
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
 if ($online) {
-    define('BASE_URL', 'https://overdose.moboidgroup.com/app/');
+    define('BASE_URL', 'https://overdose.moboidgroup.com/');
     define('GOOGLE_REDIRECT_URI', 'https://overdose.moboidgroup.com/app/api/auth/google_callback.php');
 } else {
-    define('BASE_URL', 'http://localhost/_projects_/P020-Overdose/app/');
-    define('GOOGLE_REDIRECT_URI', 'http://localhost/_projects_/P020-Overdose/app/api/auth/google_callback.php');
+    // BASE_URL mengarah ke Root Proyek (Bukan ke folder app/)
+    define('BASE_URL', $protocol . $host . '/_Projects_/P020-Overdose/');
+    define('GOOGLE_REDIRECT_URI', $protocol . $host . '/_Projects_/P020-Overdose/app/api/auth/google_callback.php');
 }
 
 define('ALLOWED_EMAIL_DOMAIN', '@polban.ac.id');
