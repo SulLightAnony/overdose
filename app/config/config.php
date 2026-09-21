@@ -1,29 +1,27 @@
 <?php
-// ==========================================
-// PARSER SEDERHANA UNTUK BERKAS .ENV (NATIVE PHP)
-// ==========================================
-$envPath = __DIR__ . '/../.env';
+// Parser .env dengan cek root proyek (/overdose/.env)
+$envPath = __DIR__ . '/../../.env';
+if (!file_exists($envPath)) {
+    $envPath = __DIR__ . '/../.env';
+}
+
 if (file_exists($envPath)) {
     $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
-        // Abaikan baris komentar
         if (str_starts_with(trim($line), '#')) {
             continue;
         }
-        list($name, $value) = explode('=', $line, 2);
-        $_ENV[trim($name)] = trim($value);
+        if (str_contains($line, '=')) {
+            list($name, $value) = explode('=', $line, 2);
+            $_ENV[trim($name)] = trim($value);
+        }
     }
 }
 
-// Ambil status online/offline dari .env
 $online = filter_var($_ENV['ONLINE'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-// Zona Waktu
 date_default_timezone_set('Asia/Jakarta');
 
-// ==========================================
-// KONFIGURASI URL & GOOGLE OAUTH
-// ==========================================
 define('GOOGLE_CLIENT_ID', $_ENV['GOOGLE_CLIENT_ID'] ?? '');
 define('GOOGLE_CLIENT_SECRET', $_ENV['GOOGLE_CLIENT_SECRET'] ?? '');
 
@@ -37,9 +35,6 @@ if ($online) {
 
 define('ALLOWED_EMAIL_DOMAIN', '@polban.ac.id');
 
-// ==========================================
-// KONFIGURASI DATABASE MYSQL
-// ==========================================
 define('DB_HOST', $_ENV['DB_HOST'] ?? 'localhost');
 define('DB_CHARSET', $_ENV['DB_CHARSET'] ?? 'utf8mb4');
 

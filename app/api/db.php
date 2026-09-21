@@ -1,6 +1,5 @@
 <?php
-// Panggil file konfigurasi terpusat (sesuaikan path foldernya jika berbeda)
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../config/config.php';
 
 $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
 $options = [
