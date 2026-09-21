@@ -8,7 +8,27 @@ if (isset($_SESSION['user_id'])) {
     exit;
 }
 
-$errorMessage = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null;
+// Penanganan Pesan Error Sesuai Parameter URL
+$errorCode = $_GET['error'] ?? null;
+$modalTitle = '';
+$modalMessage = '';
+
+if ($errorCode) {
+    switch ($errorCode) {
+        case 'invalid_domain':
+            $modalTitle = 'Login Gagal';
+            $modalMessage = 'Proses gagal. Gunakan email Polban (@polban.ac.id) untuk login.';
+            break;
+        case 'blacklisted':
+            $modalTitle = 'Akses Ditolak';
+            $modalMessage = 'Terdapat sesuatu yang salah dengan akunmu.';
+            break;
+        default:
+            $modalTitle = 'Terjadi Kesalahan';
+            $modalMessage = 'Terjadi kesalahan tidak terduga saat mencoba login. Silakan coba lagi nanti.';
+            break;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -19,6 +39,8 @@ $errorMessage = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null;
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="<?= BASE_URL ?>public/assets/css/style.css">
     <link rel="icon" href="<?= BASE_URL ?>public/assets/img/logo.png" type="image/png">
@@ -27,16 +49,9 @@ $errorMessage = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null;
 
     <div class="login-container">
         
-        <!-- Logo Diperbesar -->
+        <!-- Logo Title -->
         <img src="<?= BASE_URL ?>public/assets/img/logo_title.png" alt="Overdose Logo" class="brand-logo" onerror="this.style.display='none'; document.getElementById('alt-title').style.display='block';">
         <h1 id="alt-title" class="fw-bold text-dark mb-4 fs-3" style="display: none;">OVERDOSE</h1>
-
-        <!-- Alert Notifikasi Error (jika ada) -->
-        <?php if ($errorMessage): ?>
-            <div class="alert alert-custom-danger d-flex align-items-center text-start p-3" role="alert">
-                <div><?= $errorMessage ?></div>
-            </div>
-        <?php endif; ?>
 
         <!-- Button Google Login dengan Efek Stroke Melingkar -->
         <a href="<?= BASE_URL ?>app/api/auth/google_redirect.php" class="btn-google">
@@ -49,7 +64,7 @@ $errorMessage = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null;
             <span>Login with Google <span style="font-size: 0.8rem;">(@polban.ac.id)</span></span>
         </a>
 
-        <!-- Teks Our Sanctuary (Tanpa Ikon) -->
+        <!-- Teks Our Sanctuary -->
         <div class="sanctuary-text">
             "Our Sanctuary" — an app built exclusively<br>for students.
         </div>
@@ -62,7 +77,46 @@ $errorMessage = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null;
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" class="wave-svg"><path fill="#273036" fill-opacity="1" d="M0,32L24,80C48,128,96,224,144,250.7C192,277,240,235,288,218.7C336,203,384,213,432,186.7C480,160,528,96,576,69.3C624,43,672,53,720,74.7C768,96,816,128,864,144C912,160,960,160,1008,138.7C1056,117,1104,75,1152,80C1200,85,1248,139,1296,138.7C1344,139,1392,85,1416,58.7L1440,32L1440,320L1416,320C1392,320,1344,320,1296,320C1248,320,1200,320,1152,320C1104,320,1056,320,1008,320C960,320,912,320,864,320C816,320,768,320,720,320C672,320,624,320,576,320C528,320,480,320,432,320C384,320,336,320,288,320C240,320,192,320,144,320C96,320,48,320,24,320L0,320Z"></path></svg>
     </div>
 
+    <!-- Modal Error Login -->
+    <?php if ($errorCode): ?>
+    <div class="modal fade" id="loginErrorModal" tabindex="-1" aria-labelledby="loginErrorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content text-center border-0 shadow" style="border-radius: 16px;">
+                <div class="modal-body p-4">
+                    <div class="mb-3 text-danger fs-1">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold mb-2 text-dark" id="loginErrorModalLabel"><?= htmlspecialchars($modalTitle) ?></h5>
+                    <p class="text-secondary small mb-4"><?= htmlspecialchars($modalMessage) ?></p>
+                    <button type="button" class="btn btn-dark w-100 rounded-3 py-2 fw-semibold" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Global JS Variables -->
+    <script>
+        const BASE_URL = '<?= BASE_URL ?>';
+    </script>
+
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Main Client-Side JS -->
+    <script src="<?= BASE_URL ?>public/js/app.js"></script>
+
+    <?php if ($errorCode): ?>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var modalEl = document.getElementById('loginErrorModal');
+            if (modalEl) {
+                var errorModal = new bootstrap.Modal(modalEl);
+                errorModal.show();
+                window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
+            }
+        });
+    </script>
+    <?php endif; ?>
 </body>
 </html>

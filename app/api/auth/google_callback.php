@@ -18,23 +18,23 @@ require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../helpers.php';
 
 // =========================================================================
-// VALIDASI 1: Cek State CSRF Token & Terima Callback / Authorization Code
+// VALIDASI 1: CSRF Token Check & Google OAuth Callback
 // =========================================================================
 if (!isset($_GET['state']) || !isset($_SESSION['oauth_state']) || $_GET['state'] !== $_SESSION['oauth_state']) {
     unset($_SESSION['oauth_state']);
-    header('Location: ' . BASE_URL . 'login?error=' . urlencode('Sesi autentikasi tidak valid (CSRF Mismatch).'));
+    header('Location: ' . BASE_URL . 'login?error=csrf_invalid');
     exit;
 }
 unset($_SESSION['oauth_state']);
 
 if (!isset($_GET['code'])) {
-    header('Location: ' . BASE_URL . 'login?error=' . urlencode('Otorisasi Google dibatalkan atau gagal.'));
+    header('Location: ' . BASE_URL . 'login?error=missing_code');
     exit;
 }
 
 $code = $_GET['code'];
 
-// Tukar Code dengan Access Token dari Google
+// Tukar Authorization Code dengan Access Token
 $tokenUrl = 'https://oauth2.googleapis.com/token';
 $postData = [
     'code'          => $code,
@@ -53,11 +53,11 @@ curl_close($ch);
 
 $tokenData = json_decode($response, true);
 if (!isset($tokenData['access_token'])) {
-    header('Location: ' . BASE_URL . 'login?error=' . urlencode('Gagal mendapatkan token dari Google.'));
+    header('Location: ' . BASE_URL . 'login?error=unexpected');
     exit;
 }
 
-// Ambil Profil User dari Google API
+// Ambil Profil User dari Google
 $userInfoUrl = 'https://www.googleapis.com/oauth2/v3/userinfo';
 $ch = curl_init($userInfoUrl);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -75,26 +75,26 @@ $fullName  = $googleUser['name'] ?? '';
 $picture   = $googleUser['picture'] ?? '';
 
 // =========================================================================
-// VALIDASI 2 (Domain Check): Cek email wajib berakhiran @polban.ac.id
+// VALIDASI 2: Domain Check (@polban.ac.id)
 // =========================================================================
 if (!str_ends_with($email, ALLOWED_EMAIL_DOMAIN)) {
-    header('Location: ' . BASE_URL . 'login?error=' . urlencode('Akses khusus mahasiswa Polban (@polban.ac.id).'));
+    header('Location: ' . BASE_URL . 'login?error=invalid_domain');
     exit;
 }
 
 // =========================================================================
-// VALIDASI 3 (Blacklist Check): Cek apakah email terdaftar di emailBlacklists
+// VALIDASI 3: Blacklist Check
 // =========================================================================
 $stmt = $pdo->prepare("SELECT blacklistId FROM emailBlacklists WHERE LOWER(emailAddress) = :email");
 $stmt->execute(['email' => $email]);
 
 if ($stmt->fetch()) {
-    header('Location: ' . BASE_URL . 'login?error=' . urlencode('Gagal login. Terdapat masalah dengan akunmu.'));
+    header('Location: ' . BASE_URL . 'login?error=blacklisted');
     exit;
 }
 
 // =========================================================================
-// VALIDASI 4 (User Handling): Pendaftaran User Baru vs Penanganan User Lama
+// VALIDASI 4: User Handling (Registrasi / Sync Session)
 // =========================================================================
 $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(emailAddress) = :email");
 $stmt->execute(['email' => $email]);
@@ -103,9 +103,7 @@ $user = $stmt->fetch();
 $isNewUser = false;
 
 if (!$user) {
-    // ---- KASUS EMAIL BARU ----
     $isNewUser = true;
-    
     $insertStmt = $pdo->prepare("
         INSERT INTO users (googleId, userName, emailAddress, avatarUrl, roleLevel)
         VALUES (:googleId, :userName, :emailAddress, :avatarUrl, 'member')
@@ -117,12 +115,10 @@ if (!$user) {
         'avatarUrl'    => $picture
     ]);
 
-    // Ambil data user yang baru disimpan
     $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(emailAddress) = :email");
     $stmt->execute(['email' => $email]);
     $user = $stmt->fetch();
 } else {
-    // ---- KASUS EMAIL LAMA ----
     $updateStmt = $pdo->prepare("
         UPDATE users 
         SET googleId = :googleId, userName = :userName, avatarUrl = :avatarUrl 
@@ -136,11 +132,9 @@ if (!$user) {
     ]);
 }
 
-// Evaluasi status onboarding (jika data jurusan/prodi masih kosong)
 $hasOnboarded = !empty($user['majorType']) && !empty($user['studyProgram']) && !empty($user['classGroup']);
 $onboardingCompleted = !$isNewUser && $hasOnboarded;
 
-// Set Session Long-Lived
 $_SESSION['user_id']                 = $user['userId'];
 $_SESSION['user_name']               = $user['userName'];
 $_SESSION['email_address']           = $user['emailAddress'];
@@ -153,7 +147,6 @@ $_SESSION['batch_year']              = $user['batchYear'];
 $_SESSION['hide_completed_identity'] = $user['hideCompletedIdentity'] ?? 0;
 $_SESSION['onboarding_completed']    = $onboardingCompleted;
 
-// Set Persistent Cookie (30 Hari)
 setcookie('overdose_remember', session_id(), [
     'expires'  => time() + $cookieDuration,
     'path'     => '/',
@@ -162,7 +155,6 @@ setcookie('overdose_remember', session_id(), [
     'samesite' => 'Lax'
 ]);
 
-// Arahkan Pengguna
 if (!$onboardingCompleted) {
     header('Location: ' . BASE_URL . 'settings?onboarding=true');
 } else {
