@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 22 Sep 2026 pada 07.25
+-- Waktu pembuatan: 22 Sep 2026 pada 07.53
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -34,6 +34,10 @@ CREATE TABLE `courses` (
   `courseCode` varchar(50) NOT NULL,
   `courseTitle` varchar(150) NOT NULL,
   `courseType` enum('Teori','Praktek') NOT NULL DEFAULT 'Teori',
+  `courseClass` varchar(50) DEFAULT NULL,
+  `courseDay` enum('Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu') DEFAULT NULL,
+  `startTime` time DEFAULT NULL,
+  `endTime` time DEFAULT NULL,
   `courseDescription` text DEFAULT NULL,
   `lecturerName` varchar(150) DEFAULT NULL,
   `lecturerEmail` varchar(150) DEFAULT NULL,
@@ -493,7 +497,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT untuk tabel `courses`
 --
 ALTER TABLE `courses`
-  MODIFY `courseId` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `courseId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT untuk tabel `emailblacklists`
