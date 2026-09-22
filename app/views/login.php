@@ -1,10 +1,13 @@
 <?php
-if (!defined('BASE_URL')) {
-    require_once __DIR__ . '/../config/config.php';
-}
-
 if (isset($_SESSION['user_id'])) {
-    header('Location: ' . BASE_URL . 'dashboard');
+    // Cek apakah onboarding sudah selesai atau belum
+    $onboardingCompleted = $_SESSION['onboarding_completed'] ?? false;
+    
+    if (!$onboardingCompleted) {
+        header('Location: ' . BASE_URL . 'settings?onboarding=true');
+    } else {
+        header('Location: ' . BASE_URL . 'dashboard');
+    }
     exit;
 }
 

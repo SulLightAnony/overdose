@@ -34,52 +34,50 @@ foreach ($allProdi as $prodi) {
 <body class="login-body">
 
     <div class="login-container">
-        <!-- Logo -->
-        <img src="<?= BASE_URL ?>public/assets/img/logo_title.png" alt="Overdose Logo" class="brand-logo" style="max-height: 200px; margin-bottom: 1.5rem;">
         
-        <div class="w-100 text-start">
-            <h4 class="fw-bold text-dark mb-1 fs-5 text-center">Lengkapi Identitas</h4>
-            <p class="text-secondary small mb-4 text-center">Pilih data akademikmu untuk melanjutkan. Jangan asal dan jangan coba yang aneh-aneh. Kami tahu siapa kamu.</p>
+        <!-- DIV 1: Logo & Header Description -->
+        <div class="onboarding-header text-center w-100">
+            <img src="<?= BASE_URL ?>public/assets/img/logo_title.png" alt="Overdose Logo" class="brand-logo mb-3" style="max-height: 200px;">
+            <h4 class="fw-bold text-dark mb-1 fs-5">Lengkapi Identitas</h4>
+            <p class="text-secondary small mb-4">Pilih data akademikmu untuk melanjutkan. Jangan asal dan jangan coba yang aneh-aneh. Kami tahu siapa kamu.</p>
+        </div>
 
+        <!-- DIV 2: Form Input & Navigation Buttons -->
+        <div class="onboarding-body">
             <form id="onboardingForm" action="<?= BASE_URL ?>app/api/user/onboarding.php" method="POST">
                 
                 <!-- STEP 1: PRODI -->
                 <div class="step-container active" id="step-1">
-                    <label class="fw-semibold text-dark mb-2 small">Program Studi</label>
-                    <select class="form-select form-select-custom mb-4" name="prodi_id" id="prodi_id" required>
-                        <option value="" selected disabled>Pilih Program Studi</option>
-                        <?php foreach ($groupedProdi as $jurusan => $prodis): ?>
-                            <optgroup label="<?= htmlspecialchars($jurusan) ?>">
-                                <?php foreach ($prodis as $p): ?>
-                                    <option value="<?= $p['id'] ?>"><?= htmlspecialchars($p['nama_prodi']) ?></option>
-                                <?php endforeach; ?>
-                            </optgroup>
-                        <?php endforeach; ?>
-                    </select>
-                    
-                    <button type="button" class="btn btn-dark w-100 py-2 rounded-3 fw-semibold mb-3" onclick="nextStep(1, 2)">Selanjutnya</button>
-                    
-                    <div class="text-center">
-                        <small class="text-muted" style="font-size: 0.75rem;">
-                            Prodi kamu gak ketemu?<br>Hubungi <a href="mailto:sulthan.faazaa.tif425@polban.ac.id" class="fw-semibold text-dark">Almusayid</a>. Buka dengan Gmail.
-                        </small>
+                    <div class="step-content">
+                        <label class="fw-semibold text-dark mb-2 small text-start w-100">Program Studi</label>
+                        <select class="form-select form-select-custom" name="prodi_id" id="prodi_id" required>
+                            <option value="" selected disabled>Pilih Program Studi</option>
+                            <?php foreach ($groupedProdi as $jurusan => $prodis): ?>
+                                <optgroup label="<?= htmlspecialchars($jurusan) ?>">
+                                    <?php foreach ($prodis as $p): ?>
+                                        <option value="<?= $p['id'] ?>"><?= htmlspecialchars($p['nama_prodi']) ?></option>
+                                    <?php endforeach; ?>
+                                </optgroup>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
+                    <button type="button" class="btn btn-dark w-100 py-2 rounded-3 fw-semibold" onclick="nextStep(1, 2)">Selanjutnya</button>
                 </div>
 
                 <!-- STEP 2: ANGKATAN -->
                 <div class="step-container" id="step-2">
-                    <label class="fw-semibold text-dark mb-2 small">Tahun Angkatan</label>
-                    <select class="form-select form-select-custom mb-4" name="angkatan" id="angkatan" required>
-                        <option value="" selected disabled>Pilih Angkatan/option>
-                        <?php 
-                        $currentYear = (int)date('Y');
-                        // Menampilkan opsi angkatan 6 tahun ke belakang dari tahun sekarang
-                        for ($y = $currentYear; $y >= $currentYear - 6; $y--) {
-                            echo "<option value=\"$y\">$y</option>";
-                        }
-                        ?>
-                    </select>
-                    
+                    <div class="step-content">
+                        <label class="fw-semibold text-dark mb-2 small text-start w-100">Tahun Angkatan</label>
+                        <select class="form-select form-select-custom" name="angkatan" id="angkatan" required>
+                            <option value="" selected disabled>Pilih Angkatan</option>
+                            <?php 
+                            $currentYear = (int)date('Y');
+                            for ($y = $currentYear; $y >= $currentYear - 6; $y--) {
+                                echo "<option value=\"$y\">$y</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-light border py-2 rounded-3 fw-semibold w-50" onclick="nextStep(2, 1)">Kembali</button>
                         <button type="button" class="btn btn-dark py-2 rounded-3 fw-semibold w-50" onclick="nextStep(2, 3)">Selanjutnya</button>
@@ -88,15 +86,16 @@ foreach ($allProdi as $prodi) {
 
                 <!-- STEP 3: KELAS -->
                 <div class="step-container" id="step-3">
-                    <label class="fw-semibold text-dark mb-2 small">Kelas</label>
-                    <select class="form-select form-select-custom mb-4" name="kelas" id="kelas" required>
-                        <option value="" selected disabled>-- Pilih Kelas --</option>
-                        <option value="A">Kelas A</option>
-                        <option value="B">Kelas B</option>
-                        <option value="C">Kelas C</option>
-                        <option value="D">Kelas D</option>
-                    </select>
-                    
+                    <div class="step-content">
+                        <label class="fw-semibold text-dark mb-2 small text-start w-100">Kelas</label>
+                        <select class="form-select form-select-custom" name="kelas" id="kelas" required>
+                            <option value="" selected disabled>-- Pilih Kelas --</option>
+                            <option value="A">Kelas A</option>
+                            <option value="B">Kelas B</option>
+                            <option value="C">Kelas C</option>
+                            <option value="D">Kelas D</option>
+                        </select>
+                    </div>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-light border py-2 rounded-3 fw-semibold w-50" onclick="nextStep(3, 2)">Kembali</button>
                         <button type="submit" class="btn btn-dark py-2 rounded-3 fw-semibold w-50">Selesai</button>
@@ -105,6 +104,14 @@ foreach ($allProdi as $prodi) {
 
             </form>
         </div>
+
+        <!-- DIV 3: Help / Contact Text -->
+        <div class="onboarding-footer w-100 text-center mt-3">
+            <small class="text-muted" style="font-size: 0.75rem;">
+                Prodi kamu gak ketemu?<br>Hubungi <a href="mailto:sulthan.faazaa.tif425@polban.ac.id" class="fw-semibold text-dark">Almusayid</a>. Buka dengan Gmail.
+            </small>
+        </div>
+
     </div>
 
     <!-- Bootstrap 5 JS Bundle -->
@@ -112,7 +119,6 @@ foreach ($allProdi as $prodi) {
     
     <script>
         function nextStep(current, next) {
-            // Validasi Sederhana sebelum Lanjut
             if (current === 1) {
                 const prodi = document.getElementById('prodi_id').value;
                 if (!prodi) {
@@ -127,7 +133,6 @@ foreach ($allProdi as $prodi) {
                 }
             }
 
-            // Ganti Tampilan
             document.getElementById('step-' + current).classList.remove('active');
             document.getElementById('step-' + next).classList.add('active');
         }
