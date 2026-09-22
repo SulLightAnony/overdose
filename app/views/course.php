@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../api/auth/gatekeeper.php';
 $pageTitle = 'Mata Kuliah';
-$activeMenu = 'semester'; // Tetap aktif di tab semester
+$activeMenu = 'semester';
 
 $semesterId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($semesterId <= 0) {
@@ -13,7 +13,6 @@ ob_start();
 ?>
 
 <div class="container-fluid p-0">
-    <!-- Header Page -->
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <a href="<?= BASE_URL ?>semester" class="btn btn-sm btn-light border rounded-pill px-3 mb-2 fw-semibold">
@@ -29,9 +28,7 @@ ob_start();
         </div>
     </div>
 
-    <!-- Grid Course -->
     <div class="row g-3 g-md-4" id="course-grid">
-        <!-- Skeleton Loader -->
         <div class="col-12 col-md-6 col-lg-4">
             <div class="card border-0 shadow-sm rounded-4 p-4 text-white card-gradient" style="--card-bg: #cbd5e1;">
                 <span class="placeholder col-4 py-2 rounded mb-2"></span>
@@ -43,7 +40,7 @@ ob_start();
     </div>
 </div>
 
-<!-- Modal Tambah / Edit Mata Kuliah -->
+<!-- Modal Form Course -->
 <div class="modal fade" id="modalCourse" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow rounded-4">
@@ -58,17 +55,24 @@ ob_start();
                 
                 <div class="modal-body p-4">
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small fw-semibold text-dark">Kode Matkul</label>
                             <input type="text" class="form-control rounded-3" id="courseCode" name="courseCode" required placeholder="Contoh: IF101">
                         </div>
-                        <div class="col-md-8">
+                        <div class="col-md-6">
                             <label class="form-label small fw-semibold text-dark">Judul Mata Kuliah</label>
                             <input type="text" class="form-control rounded-3" id="courseTitle" name="courseTitle" required placeholder="Contoh: Algoritma & Pemrograman">
                         </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold text-dark">Tipe Matkul</label>
+                            <select class="form-select rounded-3" id="courseType" name="courseType" required>
+                                <option value="Teori">Teori</option>
+                                <option value="Praktek">Praktek</option>
+                            </select>
+                        </div>
                         <div class="col-12">
                             <label class="form-label small fw-semibold text-dark">Deskripsi (Opsional)</label>
-                            <textarea class="form-control rounded-3" id="description" name="description" rows="2" placeholder="Penjelasan singkat mata kuliah..."></textarea>
+                            <textarea class="form-control rounded-3" id="courseDescription" name="courseDescription" rows="2" placeholder="Penjelasan singkat mata kuliah..."></textarea>
                         </div>
                         <hr class="my-2 text-secondary opacity-25">
                         <div class="col-md-4">
@@ -98,17 +102,28 @@ ob_start();
     </div>
 </div>
 
-<!-- Modal Konfirmasi Hapus (Sesuai Permintaan: Bootstrap Modal, Konfirmasi Kanan) -->
-<div class="modal fade" id="modalDeleteConfirm" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
+<!-- Modal Konfirmasi Hapus -->
+<div class="modal fade" id="modalDeleteConfirm" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
-            <div class="modal-body p-4 text-center">
-                <i class="bi bi-exclamation-circle text-danger fs-1 mb-3 d-block"></i>
-                <h6 class="fw-bold text-dark">Hapus Mata Kuliah?</h6>
-                <p class="text-muted small mb-4">Tindakan ini tidak dapat dibatalkan. Semua tugas di matkul ini mungkin akan terpengaruh.</p>
-                <div class="d-flex justify-content-center gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-sm btn-danger rounded-pill px-4 fw-semibold" id="btnConfirmDelete">Hapus</button>
+            <div class="modal-header bg-danger text-white border-0 rounded-top-4">
+                <h6 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i> Peringatan Penghapusan</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-4">Tindakan ini akan menghapus mata kuliah beserta <strong>seluruh tugas</strong> di dalamnya.</p>
+                
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-danger">Ketik kalimat berikut untuk konfirmasi:</label>
+                    <div class="p-2 bg-light border rounded small mb-2 user-select-none fw-medium" style="font-style: italic;">
+                        Saya <?= htmlspecialchars($_SESSION['user_name']) ?> mengerti bahwa dengan menghapus mata kuliah ini maka seluruh tugas di dalamnya akan ikut terhapus.
+                    </div>
+                    <input type="text" class="form-control form-control-sm" id="confirmDeleteText" placeholder="Ketik konfirmasi..." autocomplete="off">
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-sm btn-danger px-4 fw-semibold" id="btnConfirmDelete" disabled>Hapus Matkul</button>
                 </div>
             </div>
         </div>
@@ -118,6 +133,7 @@ ob_start();
 <script>
     const BASE_URL = "<?= BASE_URL ?>";
     const CURRENT_SEMESTER_ID = <?= $semesterId ?>;
+    const USER_NAME = "<?= addslashes($_SESSION['user_name']) ?>";
 </script>
 <script src="<?= BASE_URL ?>public/js/modules/course.js"></script>
 

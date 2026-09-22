@@ -176,12 +176,24 @@ async function handleFormSubmit(e) {
 }
 
 let semesterToDelete = null;
+const expectedSemesterPhrase = `Saya ${USER_NAME} mengerti bahwa dengan menghapus semester maka segala mata kuliah serta tugas di dalam semester ini akan ikut terhapus.`;
 
 function deleteSemester(id) {
     semesterToDelete = id;
+    document.getElementById("confirmDeleteText").value = "";
+    document.getElementById("btnConfirmDelete").disabled = true;
     const modal = new bootstrap.Modal(document.getElementById("modalDeleteConfirm"));
     modal.show();
 }
+
+document.getElementById("confirmDeleteText")?.addEventListener("input", function() {
+    const btn = document.getElementById("btnConfirmDelete");
+    if (this.value === expectedSemesterPhrase) {
+        btn.disabled = false;
+    } else {
+        btn.disabled = true;
+    }
+});
 
 document.getElementById("btnConfirmDelete")?.addEventListener("click", async function() {
     if (!semesterToDelete) return;

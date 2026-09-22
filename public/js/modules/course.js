@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 let canManageCourse = false;
 let courseToDelete = null;
+const expectedCoursePhrase = `Saya ${typeof USER_NAME !== 'undefined' ? USER_NAME : ''} mengerti bahwa dengan menghapus mata kuliah ini maka seluruh tugas di dalamnya akan ikut terhapus.`;
 
 async function fetchCourses() {
     const grid = document.getElementById("course-grid");
@@ -39,14 +40,13 @@ async function fetchCourses() {
             grid.innerHTML = "";
             res.data.forEach(course => {
                 const bg = course.backgroundColor || '#10b981';
-                // TODO: Link ke halaman tugas
                 const detailUrl = `${typeof BASE_URL !== 'undefined' ? BASE_URL : ''}tasks?courseId=${course.courseId}`;
 
                 let actionButtons = '';
                 if (canManageCourse) {
                     const safeCourse = JSON.stringify(course).replace(/"/g, '&quot;');
                     actionButtons = `
-                        <div class="position-absolute top-0 end-0 m-3 d-flex gap-1 z-2">
+                        <div class="position-absolute top-0 end-0 m-3 d-flex gap-1 z-3">
                             <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1 style-icon" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;" onclick="openEditModal(${safeCourse})" title="Edit">
                                 <i class="bi bi-pencil-fill text-dark" style="font-size:0.75rem;"></i>
                             </button>
@@ -56,10 +56,13 @@ async function fetchCourses() {
                         </div>`;
                 }
 
-                // Render tombol Email & WA hanya jika ada data
                 const emailBtn = course.lecturerEmail ? `<a href="mailto:${course.lecturerEmail}" class="text-white text-opacity-75 hover-white style-icon"><i class="bi bi-envelope fs-5"></i></a>` : '';
                 const waNumber = course.lecturerPhone ? course.lecturerPhone.replace(/\D/g, '') : '';
                 const waBtn = waNumber ? `<a href="https://wa.me/${waNumber}" target="_blank" class="text-white text-opacity-75 hover-white style-icon"><i class="bi bi-whatsapp fs-5"></i></a>` : '';
+
+                const courseTypeBadge = (course.courseType === 'Praktek') 
+                    ? `<span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 mb-2 fw-semibold" style="font-size: 0.7rem;">Praktek</span>`
+                    : `<span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2.5 py-1 mb-2 fw-medium" style="font-size: 0.7rem;">Teori</span>`;
 
                 grid.innerHTML += `
                     <div class="col-12 col-md-6 col-lg-4">
@@ -67,11 +70,14 @@ async function fetchCourses() {
                             ${actionButtons}
                             
                             <div class="mb-3 flex-grow-1">
-                                <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2.5 py-1 mb-2 fw-medium" style="font-size: 0.72rem;">
-                                    ${course.courseCode}
-                                </span>
+                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2.5 py-1 mb-2 fw-medium" style="font-size: 0.72rem;">
+                                        ${course.courseCode}
+                                    </span>
+                                    ${courseTypeBadge}
+                                </div>
                                 <h5 class="fw-bold mb-1 text-white fs-5 lh-sm pe-4">${course.courseTitle}</h5>
-                                <p class="small text-white-50 mb-0 line-clamp-2">${course.description || 'Tidak ada deskripsi.'}</p>
+                                <p class="small text-white-50 mb-0 line-clamp-2">${course.courseDescription || 'Tidak ada deskripsi.'}</p>
                             </div>
 
                             <div class="mt-auto pt-3 border-top border-white border-opacity-25">
@@ -122,7 +128,8 @@ function openAddModal() {
     
     document.getElementById("courseCode").value = "";
     document.getElementById("courseTitle").value = "";
-    document.getElementById("description").value = "";
+    document.getElementById("courseType").value = "Teori";
+    document.getElementById("courseDescription").value = "";
     document.getElementById("lecturerName").value = "";
     document.getElementById("lecturerEmail").value = "";
     document.getElementById("lecturerPhone").value = "";
@@ -139,7 +146,8 @@ function openEditModal(course) {
     
     document.getElementById("courseCode").value = course.courseCode;
     document.getElementById("courseTitle").value = course.courseTitle;
-    document.getElementById("description").value = course.description || "";
+    document.getElementById("courseType").value = course.courseType || "Teori";
+    document.getElementById("courseDescription").value = course.courseDescription || "";
     document.getElementById("lecturerName").value = course.lecturerName || "";
     document.getElementById("lecturerEmail").value = course.lecturerEmail || "";
     document.getElementById("lecturerPhone").value = course.lecturerPhone || "";
@@ -199,9 +207,24 @@ async function handleFormSubmit(e) {
 
 function confirmDelete(id) {
     courseToDelete = id;
+    const inputConfirm = document.getElementById("confirmDeleteText");
+    const btnConfirm = document.getElementById("btnConfirmDelete");
+    
+    if (inputConfirm) inputConfirm.value = "";
+    if (btnConfirm) btnConfirm.disabled = true;
+
     const modal = new bootstrap.Modal(document.getElementById("modalDeleteConfirm"));
     modal.show();
 }
+
+document.getElementById("confirmDeleteText")?.addEventListener("input", function() {
+    const btn = document.getElementById("btnConfirmDelete");
+    if (this.value === expectedCoursePhrase) {
+        btn.disabled = false;
+    } else {
+        btn.disabled = true;
+    }
+});
 
 document.getElementById("btnConfirmDelete")?.addEventListener("click", async function() {
     if (!courseToDelete) return;

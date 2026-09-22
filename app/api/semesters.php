@@ -23,8 +23,8 @@ if ($method === 'POST' && isset($_POST['_method'])) {
 }
 
 try {
-    // Ambil data profil & role user
-    $stmtUser = $pdo->prepare("SELECT roleLevel, majorType, studyProgram, classGroup, batchYear FROM users WHERE userId = :userId LIMIT 1");
+    // Ambil info user
+    $stmtUser = $pdo->prepare("SELECT userId, userName, roleLevel, majorType, studyProgram, classGroup, batchYear FROM users WHERE userId = :userId LIMIT 1");
     $stmtUser->execute(['userId' => $userId]);
     $user = $stmtUser->fetch(PDO::FETCH_ASSOC);
 
@@ -33,39 +33,31 @@ try {
         exit;
     }
 
-    $roleLevel   = strtolower($user['roleLevel'] ?? 'keroco');
-    $isManager   = in_array($roleLevel, ['primordial', 'sepuh']);
-    $majorType   = $user['majorType'] ?? '';
-    $studyProgram= $user['studyProgram'] ?? '';
-    $classGroup  = $user['classGroup'] ?? '';
-    $batchYear   = $user['batchYear'] ?? '';
+    $roleLevel = strtolower($user['roleLevel'] ?? 'keroco');
+    $isManager = in_array($roleLevel, ['primordial', 'sepuh']);
 
     // ==========================================
-    // 1. GET: Ambil Daftar Semester Terfilter
+    // 1. GET: Ambil Daftar Semester (Hanya yang Aktif)
     // ==========================================
     if ($method === 'GET') {
         $stmt = $pdo->prepare("
-            SELECT semesterId, semesterNumber, semesterTitle, backgroundColor, createdAt
-            FROM semesters
-            WHERE majorType = :majorType 
-              AND studyProgram = :studyProgram 
-              AND classGroup = :classGroup 
-              AND batchYear = :batchYear
+            SELECT * FROM semesters 
+            WHERE majorType = :major 
+              AND studyProgram = :prodi 
+              AND classGroup = :kelas 
+              AND batchYear = :batch
+              AND deletionStatus = 0
             ORDER BY semesterNumber ASC
         ");
         $stmt->execute([
-            'majorType'    => $majorType,
-            'studyProgram' => $studyProgram,
-            'classGroup'   => $classGroup,
-            'batchYear'    => $batchYear
+            'major' => $user['majorType'],
+            'prodi' => $user['studyProgram'],
+            'kelas' => $user['classGroup'],
+            'batch' => $user['batchYear']
         ]);
+        
         $semesters = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        echo json_encode([
-            'success'   => true,
-            'canManage' => $isManager,
-            'data'      => $semesters
-        ]);
+        echo json_encode(['success' => true, 'canManage' => $isManager, 'data' => $semesters]);
         exit;
     }
 
@@ -153,20 +145,39 @@ try {
     // 4. DELETE: Hapus Semester
     // ==========================================
     if ($method === 'DELETE') {
-        $semesterId = (int)($inputData['semesterId'] ?? $_GET['id'] ?? 0);
-
-        if ($semesterId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID Semester tidak valid.']);
-            exit;
+        if (!$isManager) {
+            echo json_encode(['success' => false, 'message' => 'Akses ditolak.']); exit;
         }
 
-        $stmtDelete = $pdo->prepare("DELETE FROM semesters WHERE semesterId = :id");
-        $stmtDelete->execute(['id' => $semesterId]);
+        $semesterId = (int)($inputData['semesterId'] ?? 0);
+        if ($semesterId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID Semester tidak valid.']); exit;
+        }
 
-        echo json_encode(['success' => true, 'message' => 'Semester berhasil dihapus!']);
+        $deletedByString = "({$user['userId']}) {$user['userName']}";
+
+        // Gunakan Transaction untuk memastikan semua terhapus dengan aman
+        $pdo->beginTransaction();
+
+        // 1. Soft delete semester
+        $stmtUpdateSem = $pdo->prepare("UPDATE semesters SET deletionStatus = 1, deletedByUserId = :delBy WHERE semesterId = :id");
+        $stmtUpdateSem->execute(['delBy' => $deletedByString, 'id' => $semesterId]);
+
+        // 2. Hard delete seluruh tugas yang terkait semester ini
+        $stmtDelTasks = $pdo->prepare("DELETE FROM tasks WHERE semesterId = :id");
+        $stmtDelTasks->execute(['id' => $semesterId]);
+
+        // 3. Hard delete seluruh course di semester ini
+        $stmtDelCourses = $pdo->prepare("DELETE FROM courses WHERE semesterId = :id");
+        $stmtDelCourses->execute(['id' => $semesterId]);
+
+        $pdo->commit();
+
+        echo json_encode(['success' => true, 'message' => 'Semester beserta mata kuliah dan tugas di dalamnya telah dihapus.']);
         exit;
     }
 
 } catch (Exception $e) {
+    if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
     echo json_encode(['success' => false, 'message' => 'Server Error: ' . $e->getMessage()]);
 }

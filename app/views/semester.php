@@ -73,21 +73,37 @@ ob_start();
 </div>
 
 <!-- Modal Konfirmasi Hapus Semester -->
-<div class="modal fade" id="modalDeleteConfirm" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
+<div class="modal fade" id="modalDeleteConfirm" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
-            <div class="modal-body p-4 text-center">
-                <i class="bi bi-exclamation-circle text-danger fs-1 mb-3 d-block"></i>
-                <h6 class="fw-bold text-dark">Hapus Semester?</h6>
-                <p class="text-muted small mb-4">Tindakan ini tidak dapat dibatalkan.</p>
-                <div class="d-flex justify-content-center gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-sm btn-danger rounded-pill px-4 fw-semibold" id="btnConfirmDelete">Hapus</button>
+            <div class="modal-header bg-danger text-white border-0 rounded-top-4">
+                <h6 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i> Peringatan Kritis!</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-dark mb-2">Tindakan ini <strong>TIDAK DAPAT DIBATALKAN</strong>.</p>
+                <p class="text-muted small mb-4">Menghapus semester ini akan secara permanen menghapus <strong>semua mata kuliah</strong> dan <strong>seluruh tugas</strong> yang ada di dalamnya.</p>
+                
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-danger">Ketik kalimat berikut untuk konfirmasi:</label>
+                    <div class="p-2 bg-light border rounded small mb-2 user-select-none" style="font-style: italic;">
+                        Saya <?= htmlspecialchars($_SESSION['user_name']) ?> mengerti bahwa dengan menghapus semester maka segala mata kuliah serta tugas di dalam semester ini akan ikut terhapus.
+                    </div>
+                    <input type="text" class="form-control form-control-sm" id="confirmDeleteText" placeholder="Ketik persis seperti kalimat di atas" autocomplete="off">
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-sm btn-danger px-4 fw-semibold" id="btnConfirmDelete" disabled>Hapus Semester</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    const USER_NAME = "<?= addslashes($_SESSION['user_name']) ?>";
+</script>
 
 <script>
     const BASE_URL = "<?= BASE_URL ?>";

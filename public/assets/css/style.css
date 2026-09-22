@@ -407,18 +407,54 @@ body.login-body {
    MODUL SEMESTER & MATA KULIAH (GRADIENT CARD & HOVER)
    ========================================================================== */
 .card-gradient {
-    /* Base color diambil dari inline CSS variable --card-bg */
     background-color: var(--card-bg, #3b82f6);
-    /* Overlay gradient hitam transparan untuk memberikan efek gelap elegan */
     background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.25) 100%);
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
     border: none;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Pseudo-element untuk sapuan cahaya (shine) */
+.card-gradient::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%);
+    transform: skewX(-25deg);
+    z-index: 1;
+    pointer-events: none;
 }
 
 .card-gradient:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
 }
+
+/* Animasi cahaya saat di-hover */
+.card-gradient:hover::after {
+    animation: shine-effect 0.6s ease-in-out forwards;
+}
+
+@keyframes shine-effect {
+    0% { left: -150%; }
+    100% { left: 200%; }
+}
+
+.style-icon { transition: transform 0.2s ease; }
+.style-icon:hover { transform: scale(1.15); }
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.hover-white:hover { color: #ffffff !important; opacity: 1 !important; }
+/* Pastikan teks di dalam card tetap di atas efek shine */
+.card-gradient > * { position: relative; z-index: 2; }
 
 .style-icon {
     transition: transform 0.2s ease;
