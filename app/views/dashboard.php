@@ -68,7 +68,7 @@ ob_start();
     </div>
 
     <!-- Daftar Tugas & Top Contributor -->
-    <div class="row g-4">
+    <div class="row g-4 mb-4">
         <!-- Daftar Tugas -->
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column justify-content-between">
@@ -102,27 +102,50 @@ ob_start();
     </div>
 
     <!-- Jadwal Perkuliahan -->
-    <div class="row g-4 mt-1 mb-4">
-        <div class="col-md-6">
-            <div class="d-flex align-items-center mb-3">
-                <div class="bg-primary text-white rounded p-2 me-2 shadow-sm"><i class="bi bi-calendar-day"></i></div>
-                <h5 class="fw-bold mb-0">Jadwal Hari Ini (<span id="todayName">-</span>)</h5>
+     <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex align-items-center mb-3">
+            <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2 me-2">
+                <i class="bi bi-calendar3 fs-5"></i>
             </div>
-            <div id="today-courses-container" class="d-flex flex-column gap-3">
-                <span class="spinner-border spinner-border-sm text-primary"></span>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="d-flex align-items-center mb-3">
-                <div class="bg-success text-white rounded p-2 me-2 shadow-sm"><i class="bi bi-calendar-plus"></i></div>
-                <h5 class="fw-bold mb-0">Jadwal Besok (<span id="tomorrowName">-</span>)</h5>
-            </div>
-            <div id="tomorrow-courses-container" class="d-flex flex-column gap-3">
-                <span class="spinner-border spinner-border-sm text-success"></span>
-            </div>
+            <h5 class="fw-bold mb-0 text-dark">Jadwal Perkuliahan</h5>
         </div>
 
+        <div class="row g-4">
+            <!-- Hari Ini -->
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-primary text-white rounded-circle p-1 me-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                        <i class="bi bi-calendar-day small"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0 text-dark">Hari Ini (<span id="todayName">-</span>)</h6>
+                </div>
+                <div id="today-courses-container" class="d-flex flex-column gap-3">
+                    <div class="text-center py-4 bg-light rounded-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="ms-2 small text-muted">Memuat jadwal...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Besok -->
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-success text-white rounded-circle p-1 me-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                        <i class="bi bi-calendar-plus small"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0 text-dark">Besok (<span id="tomorrowName">-</span>)</h6>
+                </div>
+                <div id="tomorrow-courses-container" class="d-flex flex-column gap-3">
+                    <div class="text-center py-4 bg-light rounded-3">
+                        <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                        <span class="ms-2 small text-muted">Memuat jadwal...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-1 mb-4">
         <div class="card border-0 shadow-sm rounded-4 mb-4">
             <div class="card-body p-3 p-md-4">
                 <h6 class="fw-bold text-dark mb-2 fs-6">Random Quote:</h6>

@@ -36,7 +36,7 @@ try {
     $classGroup   = $userData['classGroup'] ?? '';
     $batchYear    = $userData['batchYear'] ?? '';
 
-    // 2. Ambil Quote of the Day dari tabel quote_list (Kolom: id, quote, author)[cite: 6]
+    // 2. Ambil Quote of the Day dari tabel quote_list (Kolom: id, quote, author)
     $quote = ['quote' => 'Tugas itu dikerjakan, bukan direnungkan.', 'author' => 'Overdose Team'];
     try {
         $stmtQuote = $pdo->query("SELECT quote, author FROM quote_list ORDER BY RAND() LIMIT 1");
@@ -47,7 +47,7 @@ try {
         // Abaikan jika tabel quote_list bermasalah
     }
 
-    // Filter akademik berdasarkan relasi tabel courses & tasks[cite: 6]
+    // Filter akademik berdasarkan relasi tabel courses & tasks
     $baseFilter = "c.majorType = :majorType AND c.studyProgram = :studyProgram AND c.classGroup = :classGroup AND c.batchYear = :batchYear";
     $params = [
         'majorType'    => $majorType,
@@ -84,12 +84,12 @@ try {
         $stmtMyCount->execute(['userId' => $userId]);
         $myTasksCount = (int)$stmtMyCount->fetchColumn();
 
-        // Daftar Tugas Pending (diurutkan berdasarkan dueDate terdekat)[cite: 6]
+        // Daftar Tugas Pending (diurutkan berdasarkan dueDate terdekat)
         $stmtTasks = $pdo->prepare("SELECT t.taskId, t.taskTitle AS title, t.dueDate AS deadline FROM tasks t JOIN courses c ON t.courseId = c.courseId WHERE $baseFilter AND t.dueDate >= NOW() AND t.taskId NOT IN (SELECT taskId FROM task_completions WHERE userId = :userId) ORDER BY t.dueDate ASC LIMIT 5");
         $stmtTasks->execute(array_merge($params, ['userId' => $userId]));
         $pendingTasks = $stmtTasks->fetchAll(PDO::FETCH_ASSOC);
 
-        // Top 3 Contributors[cite: 6]
+        // Top 3 Contributors
         $stmtTop = $pdo->query("SELECT u.userId, u.userName AS name, u.avatarUrl, u.roleLevel AS role, COUNT(t.taskId) as total_tasks 
                                 FROM tasks t 
                                 JOIN users u ON t.createdByUserId = u.userId 
@@ -102,7 +102,7 @@ try {
         // Tangkap error kueri jika data relasi kosong
     }
 
-    // TAMBAHAN: AMBIL JADWAL HARI INI & BESOK
+    // 3. Ambil Jadwal Hari Ini & Besok
     $days = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
     $todayIndex = (int)date('N');
     $tomorrowIndex = $todayIndex + 1 > 7 ? 1 : $todayIndex + 1;
@@ -110,8 +110,6 @@ try {
     $todayName = $days[$todayIndex];
     $tomorrowName = $days[$tomorrowIndex];
 
-    // Memastikan hanya mengambil dari semester yang masih aktif (deletionStatus = 0)
-    // dan sesuai dengan atribut akademik user (angkatan, prodi, dll)
     $stmtSchedule = $pdo->prepare("
         SELECT c.* 
         FROM courses c
@@ -125,10 +123,10 @@ try {
         ORDER BY c.startTime ASC
     ");
     $stmtSchedule->execute([
-        'm' => $user['majorType'],
-        'p' => $user['studyProgram'],
-        'c' => $user['classGroup'],
-        'b' => $user['batchYear'],
+        'm' => $majorType,
+        'p' => $studyProgram,
+        'c' => $classGroup,
+        'b' => $batchYear,
         'today' => $todayName,
         'tomorrow' => $tomorrowName
     ]);
@@ -138,28 +136,24 @@ try {
     $todayCourses = [];
     $tomorrowCourses = [];
     foreach ($schedule as $c) {
-        if ($c['courseDay'] === $todayName) { $todayCourses[] = $c; } 
-        else { $tomorrowCourses[] = $c; }
+        if ($c['courseDay'] === $todayName) { 
+            $todayCourses[] = $c; 
+        } else { 
+            $tomorrowCourses[] = $c; 
+        }
     }
 
-    // --- UPDATE RESPONSE JSON ANDA MENJADI: ---
-    echo json_encode([
-        'success' => true,
-        'stats' => $stats, // Sesuaikan dengan variabel array stats Anda
-        'schedule' => [
-            'todayName' => $todayName,
-            'tomorrowName' => $tomorrowName,
-            'todayCourses' => $todayCourses,
-            'tomorrowCourses' => $tomorrowCourses
-        ]
-    ]);
-
+    // 4. Output JSON Tunggal dan Lengkap
     echo json_encode([
         'success' => true,
         'message' => 'OK',
-        'data' => [
+        'data'    => [
             'quote'           => $quote,
-            'stats'           => ['done' => $countDone, 'pending' => $countPending, 'missed' => $countMissed],
+            'stats'           => [
+                'done'    => $countDone, 
+                'pending' => $countPending, 
+                'missed'  => $countMissed
+            ],
             'pendingTasks'    => $pendingTasks,
             'topContributors' => $topContributors,
             'currentUser'     => [
@@ -168,6 +162,12 @@ try {
                 'avatarUrl'  => $userData['avatarUrl'] ?? '',
                 'role'       => $userData['roleLevel'] ?? 'member',
                 'totalTasks' => $myTasksCount
+            ],
+            'schedule'        => [
+                'todayName'       => $todayName,
+                'tomorrowName'    => $tomorrowName,
+                'todayCourses'    => $todayCourses,
+                'tomorrowCourses' => $tomorrowCourses
             ]
         ]
     ]);
