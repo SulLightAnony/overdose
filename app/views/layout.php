@@ -46,11 +46,11 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
     <aside class="app-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
         
         <!-- Single Brand Logo Top Header -->
-        <div class="sidebar-header p-3 d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-25">
-            <a href="<?= BASE_URL ?>dashboard" class="d-flex align-items-center text-decoration-none">
+        <div class="sidebar-header p-3 d-flex align-items-center justify-content-between position-relative border-bottom border-secondary border-opacity-25">
+            <a href="<?= BASE_URL ?>dashboard" class="d-flex align-items-center justify-content-center w-100 text-decoration-none">
                 <img src="<?= BASE_URL ?>public/assets/img/logo_title.png" alt="Overdose Logo" class="sidebar-brand-logo">
             </a>
-            <button type="button" class="btn-close btn-close-white d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white d-lg-none position-absolute top-50 end-0 translate-middle-y me-3" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
         </div>
 
         <!-- Menu Navigasi -->

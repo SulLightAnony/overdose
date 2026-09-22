@@ -13,6 +13,49 @@ function renderRoleElement(role) {
     return `<span class="text-muted d-block" style="font-size: 0.72rem;">Keroco</span>`;
 }
 
+function renderSchedule(containerId, courses) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!Array.isArray(courses) || courses.length === 0) {
+        container.innerHTML = `
+            <div class="card border-0 bg-light p-3 rounded-3 text-center" style="border: 2px dashed #cbd5e1 !important;">
+                <i class="bi bi-calendar-x fs-4 text-secondary mb-1"></i>
+                <p class="text-muted small fw-semibold mb-0">Tidak ada data jadwal.</p>
+            </div>`;
+        return;
+    }
+
+    let html = '';
+    courses.forEach(c => {
+        const timeDisplay = (c.startTime && c.endTime)
+            ? `${c.startTime.substring(0, 5)} - ${c.endTime.substring(0, 5)}`
+            : 'Waktu TBA';
+        const detailUrl = `${typeof BASE_URL !== 'undefined' ? BASE_URL : ''}tasks?courseId=${c.courseId}`;
+        const borderBg = c.backgroundColor || '#3b82f6';
+
+        html += `
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden"
+                style="border-left: 5px solid ${borderBg} !important; cursor: pointer; transition: transform 0.2s;"
+                onclick="window.location.href='${detailUrl}'"
+                onmouseover="this.style.transform='translateX(4px)'"
+                onmouseout="this.style.transform='translateX(0)'">
+                <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-1 text-dark">${c.courseTitle}</h6>
+                        <div class="small fw-medium text-secondary">
+                            <i class="bi bi-clock me-1 text-primary"></i>${timeDisplay}
+                            <span class="mx-1 text-muted">|</span>
+                            <i class="bi bi-geo-alt me-1 text-danger"></i>Kelas ${c.courseClass || '-'}</div>
+                    </div>
+                    <span class="badge ${c.courseType === 'Praktek' ? 'bg-warning text-dark' : 'bg-primary'} rounded-pill shadow-sm">${c.courseType || 'Teori'}</span>
+                </div>
+            </div>`;
+    });
+
+    container.innerHTML = html;
+}
+
 async function fetchDashboardData() {
     const quoteContainer = document.getElementById('quote-container');
     const statDone = document.getElementById('stat-done');
@@ -148,50 +191,6 @@ async function fetchDashboardData() {
                 renderSchedule('tomorrow-courses-container', res.data.schedule.tomorrowCourses || []);
             }
 
-            function renderSchedule(containerId, courses) {
-                const container = document.getElementById(containerId);
-                if (!container) return;
-
-                // Jika data kosong, hilangkan spinner dan tampilkan status bebas jadwal
-                if (!courses || courses.length === 0) {
-                    container.innerHTML = `
-                        <div class="card border-0 bg-light p-3 rounded-3 text-center" style="border: 2px dashed #cbd5e1 !important;">
-                            <i class="bi bi-cup-hot fs-4 text-secondary mb-1"></i>
-                            <p class="text-muted small fw-semibold mb-0">Bebas! Tidak ada jadwal kelas.</p>
-                        </div>`;
-                    return;
-                }
-
-                let html = '';
-                courses.forEach(c => {
-                    const timeDisplay = (c.startTime && c.endTime) 
-                        ? `${c.startTime.substring(0, 5)} - ${c.endTime.substring(0, 5)}` 
-                        : 'Waktu TBA';
-                    const detailUrl = `${typeof BASE_URL !== 'undefined' ? BASE_URL : ''}tasks?courseId=${c.courseId}`;
-                    const borderBg = c.backgroundColor || '#3b82f6';
-
-                    html += `
-                        <div class="card border-0 shadow-sm rounded-3 overflow-hidden" 
-                            style="border-left: 5px solid ${borderBg} !important; cursor: pointer; transition: transform 0.2s;" 
-                            onclick="window.location.href='${detailUrl}'" 
-                            onmouseover="this.style.transform='translateX(4px)'" 
-                            onmouseout="this.style.transform='translateX(0)'">
-                            <div class="card-body p-3 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="fw-bold mb-1 text-dark">${c.courseTitle}</h6>
-                                    <div class="small fw-medium text-secondary">
-                                        <i class="bi bi-clock me-1 text-primary"></i>${timeDisplay}
-                                        <span class="mx-1 text-muted">|</span>
-                                        <i class="bi bi-geo-alt me-1 text-danger"></i>Kelas ${c.courseClass || '-'}
-                                    </div>
-                                </div>
-                                <span class="badge ${c.courseType === 'Praktek' ? 'bg-warning text-dark' : 'bg-primary'} rounded-pill shadow-sm">${c.courseType || 'Teori'}</span>
-                            </div>
-                        </div>`;
-                });
-
-                container.innerHTML = html;
-            }
         } else {
             handleFetchError();
         }
@@ -226,4 +225,7 @@ function handleFetchError() {
                 Belum ada kontributor. Mulailah menambahkan tugas?
             </div>`;
     }
+
+    renderSchedule('today-courses-container', []);
+    renderSchedule('tomorrow-courses-container', []);
 }

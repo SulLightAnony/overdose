@@ -44,11 +44,11 @@ async function fetchSemesters() {
                 let actionButtons = '';
                 if (canManageSemester) {
                     actionButtons = `
-                        <div class="position-absolute top-0 end-0 m-3 d-flex gap-1">
-                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;" onclick="openEditModal(${sem.semesterId}, ${sem.semesterNumber}, '${escapeQuotes(sem.semesterTitle)}', '${sem.backgroundColor}')" title="Edit">
+                        <div class="position-absolute top-0 end-0 m-3 d-flex gap-1 z-3" style="z-index: 10; pointer-events: auto;">
+                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;" onclick="event.preventDefault(); event.stopPropagation(); openEditModal(${sem.semesterId}, ${sem.semesterNumber}, '${escapeQuotes(sem.semesterTitle)}', '${sem.backgroundColor}')" title="Edit">
                                 <i class="bi bi-pencil-fill text-dark style-icon" style="font-size:0.75rem;"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;" onclick="deleteSemester(${sem.semesterId})" title="Hapus">
+                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;" onclick="event.preventDefault(); event.stopPropagation(); deleteSemester(${sem.semesterId})" title="Hapus">
                                 <i class="bi bi-trash-fill text-danger style-icon" style="font-size:0.75rem;"></i>
                             </button>
                         </div>`;
@@ -57,7 +57,6 @@ async function fetchSemesters() {
                 grid.innerHTML += `
                     <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                         <div class="card card-gradient border-0 shadow-sm rounded-4 p-4 text-white position-relative h-100" style="--card-bg: ${bg}; min-height: 140px; display: flex; flex-direction: column; justify-content: space-between;">
-                            ${actionButtons}
                             <a href="${detailUrl}" class="text-white text-decoration-none d-block h-100 d-flex flex-column justify-content-between">
                                 <div>
                                     <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2.5 py-1 mb-2 fw-medium" style="font-size: 0.72rem;">
@@ -69,6 +68,7 @@ async function fetchSemesters() {
                                     Lihat Mata Kuliah<i class="bi bi-arrow-right ms-1"></i>
                                 </div>
                             </a>
+                            ${actionButtons}
                         </div>
                     </div>`;
             });

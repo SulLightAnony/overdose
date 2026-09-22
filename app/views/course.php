@@ -18,12 +18,12 @@ ob_start();
             <a href="<?= BASE_URL ?>semester" class="btn btn-sm btn-light border rounded-pill px-3 mb-2 fw-semibold">
                 <i class="bi bi-arrow-left me-1"></i> Kembali
             </a>
-            <h4 class="fw-bold text-dark mb-1">Daftar Mata Kuliah 📖</h4>
+            <h4 class="fw-bold text-dark mb-1"><i class="bi bi-book-half me-2 text-dark"></i>Daftar Mata Kuliah</h4>
             <p class="text-secondary small mb-0">Pilih mata kuliah untuk melihat tugas-tugas di dalamnya.</p>
         </div>
         <div id="manager-actions" class="d-none">
-            <button type="button" class="btn btn-dark btn-sm rounded-pill px-3 fw-semibold" onclick="openAddModal()">
-                <i class="bi bi-plus-lg me-1"></i> Tambah Matkul
+            <button type="button" class="btn btn-dark btn-sm rounded-pill px-2 px-sm-3 fw-semibold" onclick="openAddModal()" aria-label="Tambah Mata Kuliah" title="Tambah Mata Kuliah">
+                <i class="bi bi-plus-lg me-sm-1"></i><span class="d-none d-sm-inline">Tambah Matkul</span>
             </button>
         </div>
     </div>

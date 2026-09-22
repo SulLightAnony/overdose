@@ -10,12 +10,12 @@ ob_start();
     <!-- Header Page -->
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
-            <h4 class="fw-bold text-dark mb-1">Daftar Semester</h4>
+            <h4 class="fw-bold text-dark mb-1"><i class="bi bi-journal-bookmark-fill me-2 text-dark"></i>Daftar Semester</h4>
             <p class="text-secondary small mb-0">Pilih semester untuk melihat mata kuliah dan daftar tugas.</p>
         </div>
         <div id="manager-actions" class="d-none">
-            <button type="button" class="btn btn-dark btn-sm rounded-pill px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalSemester" onclick="openAddModal()">
-                <i class="bi bi-plus-lg me-1"></i> Tambah Semester
+            <button type="button" class="btn btn-dark btn-sm rounded-pill px-2 px-sm-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalSemester" onclick="openAddModal()" aria-label="Tambah Semester" title="Tambah Semester">
+                <i class="bi bi-plus-lg me-sm-1"></i><span class="d-none d-sm-inline">Tambah Semester</span>
             </button>
         </div>
     </div>

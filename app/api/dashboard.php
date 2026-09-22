@@ -110,37 +110,39 @@ try {
     $todayName = $days[$todayIndex];
     $tomorrowName = $days[$tomorrowIndex];
 
-    $stmtSchedule = $pdo->prepare("
-        SELECT c.* 
-        FROM courses c
-        JOIN semesters s ON c.semesterId = s.semesterId
-        WHERE s.deletionStatus = 0
-            AND s.majorType = :m 
-            AND s.studyProgram = :p 
-            AND s.classGroup = :c 
-            AND s.batchYear = :b
-            AND c.courseDay IN (:today, :tomorrow)
-        ORDER BY c.startTime ASC
-    ");
-    $stmtSchedule->execute([
-        'm' => $majorType,
-        'p' => $studyProgram,
-        'c' => $classGroup,
-        'b' => $batchYear,
-        'today' => $todayName,
-        'tomorrow' => $tomorrowName
-    ]);
-    
-    $schedule = $stmtSchedule->fetchAll(PDO::FETCH_ASSOC);
-    
     $todayCourses = [];
     $tomorrowCourses = [];
-    foreach ($schedule as $c) {
-        if ($c['courseDay'] === $todayName) { 
-            $todayCourses[] = $c; 
-        } else { 
-            $tomorrowCourses[] = $c; 
+    try {
+        $stmtSchedule = $pdo->prepare("
+            SELECT c.*
+            FROM courses c
+            JOIN semesters s ON c.semesterId = s.semesterId
+            WHERE s.deletionStatus = 0
+                AND s.majorType = :majorType
+                AND s.studyProgram = :studyProgram
+                AND s.classGroup = :classGroup
+                AND s.batchYear = :batchYear
+                AND c.courseDay IN (:today, :tomorrow)
+            ORDER BY c.startTime ASC
+        ");
+        $stmtSchedule->execute([
+            'majorType' => $majorType,
+            'studyProgram' => $studyProgram,
+            'classGroup' => $classGroup,
+            'batchYear' => $batchYear,
+            'today' => $todayName,
+            'tomorrow' => $tomorrowName
+        ]);
+
+        foreach ($stmtSchedule->fetchAll(PDO::FETCH_ASSOC) as $course) {
+            if ($course['courseDay'] === $todayName) {
+                $todayCourses[] = $course;
+            } elseif ($course['courseDay'] === $tomorrowName) {
+                $tomorrowCourses[] = $course;
+            }
         }
+    } catch (Exception $e) {
+        // Keep the dashboard payload available when schedule data is unavailable.
     }
 
     // 4. Output JSON Tunggal dan Lengkap
