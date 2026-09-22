@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 22 Sep 2026 pada 07.07
+-- Waktu pembuatan: 22 Sep 2026 pada 07.25
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -33,6 +33,7 @@ CREATE TABLE `courses` (
   `semesterNumber` int(11) NOT NULL,
   `courseCode` varchar(50) NOT NULL,
   `courseTitle` varchar(150) NOT NULL,
+  `courseType` enum('Teori','Praktek') NOT NULL DEFAULT 'Teori',
   `courseDescription` text DEFAULT NULL,
   `lecturerName` varchar(150) DEFAULT NULL,
   `lecturerEmail` varchar(150) DEFAULT NULL,
