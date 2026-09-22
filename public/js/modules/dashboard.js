@@ -2,11 +2,15 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchDashboardData();
 });
 
-function getRoleBadge(role) {
-    if (role === 'Primordial' || role === 'Sepuh') {
-        return `<i class="bi bi-patch-check-fill text-warning ms-1" title="${role}"></i>`;
+function renderRoleElement(role) {
+    if (!role) return `<span class="text-muted d-block" style="font-size: 0.72rem;">Keroco</span>`;
+    const lower = role.toLowerCase();
+    if (lower === 'primordial') {
+        return `<span class="badge mt-1" style="background: linear-gradient(135deg, #be9d30, #ffd13b, #aa771c); color: #ffffff; font-size: 0.65rem; font-weight: 600;">Primordial</span>`;
+    } else if (lower === 'sepuh') {
+        return `<span class="badge bg-secondary text-white mt-1" style="font-size: 0.65rem;">Sepuh</span>`;
     }
-    return '';
+    return `<span class="text-muted d-block" style="font-size: 0.72rem;">Keroco</span>`;
 }
 
 async function fetchDashboardData() {
@@ -86,22 +90,22 @@ async function fetchDashboardData() {
                         const avatar = contributor.avatarUrl ? contributor.avatarUrl : defaultLogo;
                         const isSelf = Number(contributor.userId) === Number(currentUserId);
                         
-                        // Highlight khusus jika user saat ini masuk ke Top 3
-                        const highlightClass = isSelf ? 'bg-primary bg-opacity-10 border border-primary border-opacity-25 p-2 rounded-3' : '';
+                        const highlightClass = isSelf ? 'bg-primary bg-opacity-10 border border-primary border-opacity-25' : '';
 
                         topContainer.innerHTML += `
-                            <div class="d-flex align-items-center gap-3 ${highlightClass}">
-                                <img src="${avatar}" alt="${contributor.name}" class="rounded-circle border" style="width: 42px; height: 42px; object-fit: cover;">
-                                <div class="w-100">
-                                    <h6 class="mb-0 fw-semibold text-dark small d-flex align-items-center">
-                                        ${contributor.name} ${getRoleBadge(contributor.role)} ${isSelf ? '<span class="badge bg-primary text-white ms-auto" style="font-size:0.6rem">Kamu</span>' : ''}
-                                    </h6>
-                                    <div class="d-flex justify-content-between align-items-center w-100 mt-1">
-                                        <small class="text-muted" style="font-size: 0.7rem;">${contributor.role}</small>
-                                        <span class="badge bg-dark bg-opacity-10 text-dark rounded-pill fw-medium" style="font-size: 0.68rem;">
-                                            ${contributor.total_tasks} Tugas
-                                        </span>
+                            <div class="d-flex align-items-center justify-content-between gap-2 p-2 rounded-3 ${highlightClass}" style="overflow: hidden;">
+                                <div class="d-flex align-items-center gap-3 min-w-0 flex-grow-1" style="overflow: hidden;">
+                                    <img src="${avatar}" alt="${contributor.name}" class="rounded-circle border flex-shrink-0" style="width: 40px; height: 40px; object-fit: cover;" referrerpolicy="no-referrer">
+                                    <div class="min-w-0 flex-grow-1" style="overflow: hidden;">
+                                        <h6 class="mb-0 fw-semibold text-dark small text-truncate" title="${contributor.name}">${contributor.name}</h6>
+                                        ${renderRoleElement(contributor.role)}
                                     </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                    ${isSelf ? '<span class="badge bg-secondary text-white" style="font-size: 0.55rem;">Akun Saya</span>' : ''}
+                                    <span class="badge bg-dark bg-opacity-10 text-dark rounded-pill fw-medium" style="font-size: 0.68rem;">
+                                        ${contributor.total_tasks} Tugas
+                                    </span>
                                 </div>
                             </div>
                         `;
@@ -111,21 +115,22 @@ async function fetchDashboardData() {
                 // Jika User TIDAK masuk Top 3, buat baris terpisah di bawah pemisah tipis
                 if (!isUserInTop3 && data.currentUser) {
                     const myAvatar = data.currentUser.avatarUrl ? data.currentUser.avatarUrl : ((typeof BASE_URL !== 'undefined' ? BASE_URL : '') + 'public/assets/img/logo.png');
+                    
                     topContainer.innerHTML += `
                         <hr class="my-2 border-secondary opacity-25">
-                        <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3 border">
-                            <img src="${myAvatar}" alt="${data.currentUser.name}" class="rounded-circle border" style="width: 42px; height: 42px; object-fit: cover;">
-                            <div class="w-100">
-                                <h6 class="mb-0 fw-semibold text-dark small d-flex align-items-center">
-                                    ${data.currentUser.name} ${getRoleBadge(data.currentUser.role)}
-                                    <span class="badge bg-secondary text-white ms-auto" style="font-size:0.6rem">Akun Saya</span>
-                                </h6>
-                                <div class="d-flex justify-content-between align-items-center w-100 mt-1">
-                                    <small class="text-muted" style="font-size: 0.7rem;">${data.currentUser.role}</small>
-                                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill fw-medium" style="font-size: 0.68rem;">
-                                        ${data.currentUser.totalTasks} Tugas
-                                    </span>
+                        <div class="d-flex align-items-center justify-content-between gap-2 p-2 bg-light rounded-3 border" style="overflow: hidden;">
+                            <div class="d-flex align-items-center gap-3 min-w-0 flex-grow-1" style="overflow: hidden;">
+                                <img src="${myAvatar}" alt="${data.currentUser.name}" class="rounded-circle border flex-shrink-0" style="width: 40px; height: 40px; object-fit: cover;" referrerpolicy="no-referrer">
+                                <div class="min-w-0 flex-grow-1" style="overflow: hidden;">
+                                    <h6 class="mb-0 fw-semibold text-dark small text-truncate" title="${data.currentUser.name}">${data.currentUser.name}</h6>
+                                    ${renderRoleElement(data.currentUser.role)}
                                 </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                <span class="badge bg-secondary text-white" style="font-size: 0.55rem;">Akun Saya</span>
+                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill fw-medium" style="font-size: 0.68rem;">
+                                    ${data.currentUser.totalTasks} Tugas
+                                </span>
                             </div>
                         </div>
                     `;

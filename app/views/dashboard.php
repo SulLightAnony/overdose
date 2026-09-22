@@ -10,10 +10,7 @@ ob_start();
     <!-- Header, Quote, & Navigasi Semester -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-8 col-12 mb-3 mb-md-0">
-            <h4 class="fw-bold text-dark mb-1">Hellcome, <?= htmlspecialchars($_SESSION['user_name'] ?? '') ?>! 😛</h4>
-            <p class="text-secondary small fst-italic mb-0" id="quote-container">
-                <span class="placeholder-glow"><span class="placeholder col-8 col-md-6"></span></span>
-            </p>
+            <h4 class="fw-bold text-dark mb-1">Hellcome, <?= htmlspecialchars($_SESSION['user_name'] ?? '') ?>! 😛</h4>            
         </div>
         <div class="col-md-4 col-12 text-md-end">
             <a href="<?= BASE_URL ?>semester" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold">
@@ -84,7 +81,7 @@ ob_start();
                 </div>
                 <!-- Tombol Tampilkan Semua Tugas -->
                 <div class="card-footer bg-transparent border-top p-3 text-center">
-                    <a href="<?= BASE_URL ?>tasks" class="btn btn-sm btn-light border rounded-pill px-4 fw-semibold text-dark hover-shadow">
+                    <a href="<?= BASE_URL ?>tasks" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold">
                         Tampilkan Semua Tugas <i class="bi bi-arrow-right ms-1"></i>
                     </a>
                 </div>
@@ -100,6 +97,15 @@ ob_start();
                         <p class="placeholder-glow mb-0"><span class="placeholder col-12 py-3 rounded-3"></span></p>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-3 p-md-4">
+                <h6 class="fw-bold text-dark mb-2 fs-6">Random Quote:</h6>
+                <p class="text-secondary small fst-italic mb-0" id="quote-container">
+                    <span class="placeholder-glow"><span class="placeholder col-8 col-md-6"></span></span>
+                </p>
             </div>
         </div>
     </div>

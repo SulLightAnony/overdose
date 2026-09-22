@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 21 Sep 2026 pada 09.51
+-- Waktu pembuatan: 22 Sep 2026 pada 05.44
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -94,6 +94,86 @@ CREATE TABLE `notifications` (
 -- --------------------------------------------------------
 
 --
+-- Struktur dari tabel `prodi_list`
+--
+
+CREATE TABLE `prodi_list` (
+  `id` int(11) NOT NULL,
+  `jurusan` varchar(100) NOT NULL,
+  `nama_prodi` varchar(150) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data untuk tabel `prodi_list`
+--
+
+INSERT INTO `prodi_list` (`id`, `jurusan`, `nama_prodi`) VALUES
+(1, 'Teknik Sipil', 'D-3 Teknik Konstruksi Sipil'),
+(2, 'Teknik Sipil', 'D-3 Teknik Konstruksi Gedung'),
+(3, 'Teknik Sipil', 'D-4 Teknik Perancangan Jalan dan Jembatan'),
+(4, 'Teknik Sipil', 'D-4 Teknik Perawatan dan Perbaikan Gedung'),
+(5, 'Teknik Sipil', 'S-2 Rekayasa Infrastruktur'),
+(6, 'Teknik Mesin', 'D-3 Teknik Mesin'),
+(7, 'Teknik Mesin', 'D-3 Teknik Aeronautika'),
+(8, 'Teknik Mesin', 'D-4 Teknik Perancangan dan Konstruksi Mesin'),
+(9, 'Teknik Mesin', 'D-4 Proses Manufaktur'),
+(10, 'Teknik Refrigerasi dan Tata Udara', 'D-3 Teknik Pendingin dan Tata Udara'),
+(11, 'Teknik Refrigerasi dan Tata Udara', 'D-4 Teknik Pendingin dan Tata Udara'),
+(12, 'Teknik Konversi Energi', 'D-3 Teknik Konversi Energi'),
+(13, 'Teknik Konversi Energi', 'D-4 Teknologi Pembangkit Tenaga Listrik'),
+(14, 'Teknik Konversi Energi', 'D-4 Teknik Konservasi Energi'),
+(15, 'Teknik Elektro', 'D-3 Teknik Elektronika'),
+(16, 'Teknik Elektro', 'D-3 Teknik Listrik'),
+(17, 'Teknik Elektro', 'D-3 Teknik Telekomunikasi'),
+(18, 'Teknik Elektro', 'D-4 Teknik Elektronika'),
+(19, 'Teknik Elektro', 'D-4 Teknik Telekomunikasi'),
+(20, 'Teknik Elektro', 'D-4 Teknik Otomasi Industri'),
+(21, 'Teknik Kimia', 'D-3 Teknik Kimia'),
+(22, 'Teknik Kimia', 'D-3 Analis Kimia'),
+(23, 'Teknik Kimia', 'D-4 Teknik Kimia Produksi Bersih'),
+(24, 'Teknik Komputer dan Informatika', 'D-3 Teknik Informatika'),
+(25, 'Teknik Komputer dan Informatika', 'D-4 Teknik Informatika'),
+(26, 'Akuntansi', 'D-3 Akuntansi'),
+(27, 'Akuntansi', 'D-3 Keuangan dan Perbankan'),
+(28, 'Akuntansi', 'D-4 Akuntansi Manajemen Pemerintahan'),
+(29, 'Akuntansi', 'D-4 Akuntansi'),
+(30, 'Akuntansi', 'D-4 Keuangan Syariah'),
+(31, 'Akuntansi', 'S-2 Keuangan & Perbankan Syariah'),
+(32, 'Administrasi Niaga', 'D-3 Administrasi Bisnis'),
+(33, 'Administrasi Niaga', 'D-3 Manajemen Pemasaran'),
+(34, 'Administrasi Niaga', 'D-3 Usaha Perjalanan Wisata'),
+(35, 'Administrasi Niaga', 'D-4 Manajemen Aset'),
+(36, 'Administrasi Niaga', 'D-4 Administrasi Bisnis'),
+(37, 'Administrasi Niaga', 'D-4 Manajemen Pemasaran'),
+(38, 'Administrasi Niaga', 'D-4 Destinasi Pariwisata'),
+(39, 'Administrasi Niaga', 'S2 - Pemasaran, Inovasi, dan Teknologi'),
+(40, 'Bahasa Inggris', 'D-3 Bahasa Inggris'),
+(41, 'Bahasa Inggris', 'D-4 Bahasa Inggris untuk Komunikasi Bisnis dan Profesional');
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `quote_list`
+--
+
+CREATE TABLE `quote_list` (
+  `id` int(11) NOT NULL,
+  `quote` text NOT NULL,
+  `author` varchar(100) DEFAULT 'Unknown'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data untuk tabel `quote_list`
+--
+
+INSERT INTO `quote_list` (`id`, `quote`, `author`) VALUES
+(1, 'Tugas apapun tidak akan terasa berat — apabila tidak dikerjakan.', 'Almusayid'),
+(2, 'Sebaik-baiknya deadline adalah yang masih besok.', 'Sepuh Polban'),
+(3, 'Error adalah cara kode menyapamu. Jangan panik.', 'Programmer Anonim');
+
+-- --------------------------------------------------------
+
+--
 -- Struktur dari tabel `semesters`
 --
 
@@ -110,6 +190,18 @@ CREATE TABLE `semesters` (
   `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
   `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `taskcompletions`
+--
+
+CREATE TABLE `taskcompletions` (
+  `taskId` int(11) NOT NULL,
+  `userId` int(11) NOT NULL,
+  `completedAt` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -181,6 +273,13 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- Dumping data untuk tabel `users`
+--
+
+INSERT INTO `users` (`userId`, `googleId`, `userName`, `emailAddress`, `avatarUrl`, `roleLevel`, `majorType`, `studyProgram`, `classGroup`, `batchYear`, `hideCompletedIdentity`, `createdAt`, `updatedAt`) VALUES
+(3, '104787523545969827644', '1C_Sulthan Faazaa Akbar Riyandoro_088', 'sulthan.faazaa.tif425@polban.ac.id', 'https://lh3.googleusercontent.com/a/ACg8ocIIwwKwgHfrSBlcqcebKxmJqLb5ccXfSj-HjXASk_l5Ymp7XbQ=s96-c', 'member', 'D4', 'Teknik Informatika', 'C', 2025, 0, '2026-09-22 02:56:23', '2026-09-22 02:56:40');
+
+--
 -- Indexes for dumped tables
 --
 
@@ -215,11 +314,29 @@ ALTER TABLE `notifications`
   ADD KEY `relatedTaskId` (`relatedTaskId`);
 
 --
+-- Indeks untuk tabel `prodi_list`
+--
+ALTER TABLE `prodi_list`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indeks untuk tabel `quote_list`
+--
+ALTER TABLE `quote_list`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indeks untuk tabel `semesters`
 --
 ALTER TABLE `semesters`
   ADD PRIMARY KEY (`semesterId`),
   ADD KEY `createdByUserId` (`createdByUserId`);
+
+--
+-- Indeks untuk tabel `taskcompletions`
+--
+ALTER TABLE `taskcompletions`
+  ADD PRIMARY KEY (`taskId`,`userId`);
 
 --
 -- Indeks untuk tabel `tasks`
@@ -282,6 +399,18 @@ ALTER TABLE `notifications`
   MODIFY `notificationId` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT untuk tabel `prodi_list`
+--
+ALTER TABLE `prodi_list`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+
+--
+-- AUTO_INCREMENT untuk tabel `quote_list`
+--
+ALTER TABLE `quote_list`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT untuk tabel `semesters`
 --
 ALTER TABLE `semesters`
@@ -309,7 +438,7 @@ ALTER TABLE `task_completions`
 -- AUTO_INCREMENT untuk tabel `users`
 --
 ALTER TABLE `users`
-  MODIFY `userId` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `userId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)

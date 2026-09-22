@@ -241,7 +241,7 @@ body.login-body {
 }
 
 .sidebar-brand-logo {
-    max-height: 45px;
+    max-height: 75px;
     width: auto;
     object-fit: contain;
 }

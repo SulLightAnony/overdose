@@ -69,9 +69,9 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="<?= BASE_URL ?>settings" class="nav-link <?= (isset($activeMenu) && $activeMenu === 'settings') ? 'active' : '' ?>">
+                    <a href="<?= BASE_URL ?>configuration" class="nav-link <?= (isset($activeMenu) && $activeMenu === 'settings') ? 'active' : '' ?>">
                         <i class="bi bi-gear-fill"></i>
-                        <span>Pengaturan Profil</span>
+                        <span>Pengaturan</span>
                     </a>
                 </li>
             </ul>
@@ -109,14 +109,14 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
                 <!-- Avatar Profil Pengguna Google -->
                 <div class="dropdown">
                     <a href="#" class="d-flex align-items-center text-decoration-none" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="<?= htmlspecialchars($userAvatar) ?>" alt="<?= htmlspecialchars($userName) ?>" class="user-avatar-circle">
+                        <img src="<?= htmlspecialchars($userAvatar) ?>" alt="<?= htmlspecialchars($userName) ?>" class="user-avatar-circle" referrerpolicy="no-referrer">
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 mt-2" aria-labelledby="userDropdown">
                         <li class="px-3 py-2 border-bottom">
                             <p class="mb-0 fw-semibold text-dark small"><?= htmlspecialchars($userName) ?></p>
                         </li>
                         <li>
-                            <a class="dropdown-item small py-2" href="<?= BASE_URL ?>settings">
+                            <a class="dropdown-item small py-2" href="<?= BASE_URL ?>configuration">
                                 <i class="bi bi-person me-2"></i> Pengaturan Profil
                             </a>
                         </li>

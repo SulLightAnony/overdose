@@ -17,8 +17,8 @@ if (!isset($_SESSION['user_id'])) {
 $userId = $_SESSION['user_id'];
 
 try {
-    // 1. Ambil Data User
-    $stmtUser = $pdo->prepare("SELECT fullName, avatarUrl, prodiId, angkatan, kelas, role FROM users WHERE userId = :userId LIMIT 1");
+    // 1. Ambil data profil & akademik user sesuai skema app_overdose.sql
+    $stmtUser = $pdo->prepare("SELECT userName, avatarUrl, majorType, studyProgram, classGroup, batchYear, roleLevel FROM users WHERE userId = :userId LIMIT 1");
     $stmtUser->execute(['userId' => $userId]);
     $userData = $stmtUser->fetch(PDO::FETCH_ASSOC);
 
@@ -31,11 +31,12 @@ try {
         $_SESSION['user_avatar'] = $userData['avatarUrl'];
     }
 
-    $prodiId  = $userData['prodiId'] ?? '';
-    $angkatan = $userData['angkatan'] ?? '';
-    $kelas    = $userData['kelas'] ?? '';
+    $majorType    = $userData['majorType'] ?? '';
+    $studyProgram = $userData['studyProgram'] ?? '';
+    $classGroup   = $userData['classGroup'] ?? '';
+    $batchYear    = $userData['batchYear'] ?? '';
 
-    // 2. Ambil Quote of the Day (dengan Fallback Cepat)
+    // 2. Ambil Quote of the Day dari tabel quote_list (Kolom: id, quote, author)[cite: 6]
     $quote = ['quote' => 'Tugas itu dikerjakan, bukan direnungkan.', 'author' => 'Overdose Team'];
     try {
         $stmtQuote = $pdo->query("SELECT quote, author FROM quote_list ORDER BY RAND() LIMIT 1");
@@ -43,15 +44,16 @@ try {
             $quote = $row;
         }
     } catch (Exception $e) {
-        // Fallback jika tabel quote_list belum ada
+        // Abaikan jika tabel quote_list bermasalah
     }
 
-    // Filter Akademik
-    $baseFilter = "t.prodiId = :prodiId AND t.angkatan = :angkatan AND t.kelas = :kelas";
+    // Filter akademik berdasarkan relasi tabel courses & tasks[cite: 6]
+    $baseFilter = "c.majorType = :majorType AND c.studyProgram = :studyProgram AND c.classGroup = :classGroup AND c.batchYear = :batchYear";
     $params = [
-        'prodiId'  => $prodiId,
-        'angkatan' => $angkatan,
-        'kelas'    => $kelas
+        'majorType'    => $majorType,
+        'studyProgram' => $studyProgram,
+        'classGroup'   => $classGroup,
+        'batchYear'    => $batchYear
     ];
 
     $countDone = 0;
@@ -61,44 +63,43 @@ try {
     $pendingTasks = [];
     $topContributors = [];
 
-    // 3. Ambil Data Tugas & Statistik
     try {
-        // Selesai
-        $stmtDone = $pdo->prepare("SELECT COUNT(*) FROM tasks t JOIN taskCompletions tc ON t.taskId = tc.taskId WHERE $baseFilter AND tc.userId = :userId");
+        // Statistik: Selesai
+        $stmtDone = $pdo->prepare("SELECT COUNT(DISTINCT t.taskId) FROM tasks t JOIN courses c ON t.courseId = c.courseId JOIN task_completions tc ON t.taskId = tc.taskId WHERE $baseFilter AND tc.userId = :userId");
         $stmtDone->execute(array_merge($params, ['userId' => $userId]));
         $countDone = (int)$stmtDone->fetchColumn();
 
-        // Pending
-        $stmtPending = $pdo->prepare("SELECT COUNT(*) FROM tasks t WHERE $baseFilter AND t.deadline >= NOW() AND t.taskId NOT IN (SELECT taskId FROM taskCompletions WHERE userId = :userId)");
+        // Statistik: Pending
+        $stmtPending = $pdo->prepare("SELECT COUNT(DISTINCT t.taskId) FROM tasks t JOIN courses c ON t.courseId = c.courseId WHERE $baseFilter AND t.dueDate >= NOW() AND t.taskId NOT IN (SELECT taskId FROM task_completions WHERE userId = :userId)");
         $stmtPending->execute(array_merge($params, ['userId' => $userId]));
         $countPending = (int)$stmtPending->fetchColumn();
 
-        // Terlewat
-        $stmtMissed = $pdo->prepare("SELECT COUNT(*) FROM tasks t WHERE $baseFilter AND t.deadline < NOW() AND t.taskId NOT IN (SELECT taskId FROM taskCompletions WHERE userId = :userId)");
+        // Statistik: Terlewat
+        $stmtMissed = $pdo->prepare("SELECT COUNT(DISTINCT t.taskId) FROM tasks t JOIN courses c ON t.courseId = c.courseId WHERE $baseFilter AND t.dueDate < NOW() AND t.taskId NOT IN (SELECT taskId FROM task_completions WHERE userId = :userId)");
         $stmtMissed->execute(array_merge($params, ['userId' => $userId]));
         $countMissed = (int)$stmtMissed->fetchColumn();
 
         // Total Tugas yang Dibuat oleh User saat ini
-        $stmtMyCount = $pdo->prepare("SELECT COUNT(*) FROM tasks WHERE createdBy = :userId");
+        $stmtMyCount = $pdo->prepare("SELECT COUNT(*) FROM tasks WHERE createdByUserId = :userId");
         $stmtMyCount->execute(['userId' => $userId]);
         $myTasksCount = (int)$stmtMyCount->fetchColumn();
 
-        // Daftar Tugas Pending (Short by deadline mepet)
-        $stmtTasks = $pdo->prepare("SELECT t.taskId, t.title, t.deadline FROM tasks t WHERE $baseFilter AND t.deadline >= NOW() AND t.taskId NOT IN (SELECT taskId FROM taskCompletions WHERE userId = :userId) ORDER BY t.deadline ASC LIMIT 5");
+        // Daftar Tugas Pending (diurutkan berdasarkan dueDate terdekat)[cite: 6]
+        $stmtTasks = $pdo->prepare("SELECT t.taskId, t.taskTitle AS title, t.dueDate AS deadline FROM tasks t JOIN courses c ON t.courseId = c.courseId WHERE $baseFilter AND t.dueDate >= NOW() AND t.taskId NOT IN (SELECT taskId FROM task_completions WHERE userId = :userId) ORDER BY t.dueDate ASC LIMIT 5");
         $stmtTasks->execute(array_merge($params, ['userId' => $userId]));
         $pendingTasks = $stmtTasks->fetchAll(PDO::FETCH_ASSOC);
 
-        // Top 3 Contributors
-        $stmtTop = $pdo->query("SELECT u.userId, u.fullName AS name, u.avatarUrl, u.role, COUNT(t.taskId) as total_tasks 
+        // Top 3 Contributors[cite: 6]
+        $stmtTop = $pdo->query("SELECT u.userId, u.userName AS name, u.avatarUrl, u.roleLevel AS role, COUNT(t.taskId) as total_tasks 
                                 FROM tasks t 
-                                JOIN users u ON t.createdBy = u.userId 
-                                GROUP BY u.userId, u.fullName, u.avatarUrl, u.role 
+                                JOIN users u ON t.createdByUserId = u.userId 
+                                GROUP BY u.userId, u.userName, u.avatarUrl, u.roleLevel 
                                 ORDER BY total_tasks DESC LIMIT 3");
         if ($stmtTop) {
             $topContributors = $stmtTop->fetchAll(PDO::FETCH_ASSOC);
         }
     } catch (Exception $e) {
-        // Abaikan exception jika tabel belum terisi lengkap
+        // Tangkap error kueri jika data relasi kosong
     }
 
     echo json_encode([
@@ -111,9 +112,9 @@ try {
             'topContributors' => $topContributors,
             'currentUser'     => [
                 'userId'     => (int)$userId,
-                'name'       => $userData['fullName'],
+                'name'       => $userData['userName'],
                 'avatarUrl'  => $userData['avatarUrl'] ?? '',
-                'role'       => $userData['role'] ?? 'Mahasiswa',
+                'role'       => $userData['roleLevel'] ?? 'member',
                 'totalTasks' => $myTasksCount
             ]
         ]
