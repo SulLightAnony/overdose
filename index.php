@@ -47,6 +47,10 @@ switch ($path) {
         require 'app/api/auth/google_redirect.php';
         break;
 
+    case 'api/dashboard.php':
+        require 'app/api/dashboard.php';
+        break;
+
     default:
         http_response_code(404);
         ?>

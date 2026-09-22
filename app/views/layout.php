@@ -1,15 +1,27 @@
 <?php
-// Gatekeeper Keamanan: Pengecekan otomatis di setiap halaman terproteksi
 require_once __DIR__ . '/../api/auth/gatekeeper.php';
 
 if (!defined('BASE_URL')) {
     require_once __DIR__ . '/../config/config.php';
 }
 
-// Data pengguna & notifikasi dari Sesi
-$userName           = $_SESSION['user_name'] ?? 'Pengguna';
-$userAvatar         = $_SESSION['user_avatar'] ?? BASE_URL . 'public/assets/img/logo.png';
-$hasNotification    = $_SESSION['has_unread_notification'] ?? false; // Ubah nilai ini jika ada notifikasi
+require_once __DIR__ . '/../api/db.php';
+
+// Pastikan data profil & avatar tersinkron dari DB (menggunakan userName, bukan name)
+if (isset($_SESSION['user_id'])) {
+    $stmtNavUser = $pdo->prepare("SELECT userName, avatarUrl FROM users WHERE userId = :userId LIMIT 1");
+    $stmtNavUser->execute(['userId' => $_SESSION['user_id']]);
+    $navUserData = $stmtNavUser->fetch(PDO::FETCH_ASSOC);
+    
+    if ($navUserData) {
+        $userName   = $navUserData['userName'];
+        $userAvatar = !empty($navUserData['avatarUrl']) ? $navUserData['avatarUrl'] : BASE_URL . 'public/assets/img/logo.png';
+    }
+}
+
+$userName        = $userName ?? ($_SESSION['user_name'] ?? 'Pengguna');
+$userAvatar      = $userAvatar ?? ($_SESSION['user_avatar'] ?? BASE_URL . 'public/assets/img/logo.png');
+$hasNotification = $_SESSION['has_unread_notification'] ?? false;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -30,21 +42,15 @@ $hasNotification    = $_SESSION['has_unread_notification'] ?? false; // Ubah nil
 
 <div class="app-wrapper">
 
-    <!-- NAVBAR KIRI / SIDEBAR (Responsive Offcanvas) -->
+    <!-- NAVBAR KIRI / SIDEBAR -->
     <aside class="app-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
         
-        <!-- Header Sidebar (Logo) -->
-        <div class="offcanvas-header d-flex align-items-center justify-content-between p-3 border-bottom border-secondary border-opacity-25">
+        <!-- Single Brand Logo Top Header -->
+        <div class="sidebar-header p-3 d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-25">
             <a href="<?= BASE_URL ?>dashboard" class="d-flex align-items-center text-decoration-none">
                 <img src="<?= BASE_URL ?>public/assets/img/logo_title.png" alt="Overdose Logo" class="sidebar-brand-logo">
             </a>
             <button type="button" class="btn-close btn-close-white d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
-        </div>
-
-        <div class="d-none d-lg-block p-3 text-center border-bottom border-secondary border-opacity-25">
-            <a href="<?= BASE_URL ?>dashboard">
-                <img src="<?= BASE_URL ?>public/assets/img/logo_title.png" alt="Overdose Logo" class="sidebar-brand-logo">
-            </a>
         </div>
 
         <!-- Menu Navigasi -->
@@ -70,40 +76,37 @@ $hasNotification    = $_SESSION['has_unread_notification'] ?? false; // Ubah nil
                 </li>
             </ul>
 
-            <!-- Tombol Keluar / Logout -->
+            <!-- Tombol Keluar (Memicu Modal) -->
             <div class="pt-3 border-top border-secondary border-opacity-25">
-                <a href="<?= BASE_URL ?>logout" class="nav-link text-danger">
+                <button type="button" class="nav-link text-danger w-100 text-start bg-transparent border-0" data-bs-toggle="modal" data-bs-target="#logoutModal">
                     <i class="bi bi-box-arrow-left"></i>
                     <span>Keluar</span>
-                </a>
+                </button>
             </div>
         </div>
     </aside>
 
-    <!-- AREA UTAMA (TOPBAR + CONTENT) -->
+    <!-- AREA UTAMA -->
     <div class="app-main">
         
         <!-- TOPBAR -->
         <header class="app-topbar">
-            <!-- Left Side: Hamburger Trigger untuk Mobile -->
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-nav-icon d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
                     <i class="bi bi-list fs-4"></i>
                 </button>
             </div>
 
-            <!-- Right Side: Notifikasi & Profil -->
             <div class="d-flex align-items-center gap-2">
-                
-                <!-- Ikon Lonceng Notifikasi -->
-                <button type="button" class="btn btn-nav-icon" title="Notifikasi" id="notificationBtn">
+                <!-- Ikon Lonceng Notifikasi (HREF ke /notifications) -->
+                <a href="<?= BASE_URL ?>notifications" class="btn btn-nav-icon position-relative text-decoration-none" title="Notifikasi">
                     <i class="bi bi-bell fs-5"></i>
                     <?php if ($hasNotification): ?>
                         <span class="red-dot-indicator"></span>
                     <?php endif; ?>
-                </button>
+                </a>
 
-                <!-- Avatar Profil Pengguna -->
+                <!-- Avatar Profil Pengguna Google -->
                 <div class="dropdown">
                     <a href="#" class="d-flex align-items-center text-decoration-none" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <img src="<?= htmlspecialchars($userAvatar) ?>" alt="<?= htmlspecialchars($userName) ?>" class="user-avatar-circle">
@@ -113,15 +116,15 @@ $hasNotification    = $_SESSION['has_unread_notification'] ?? false; // Ubah nil
                             <p class="mb-0 fw-semibold text-dark small"><?= htmlspecialchars($userName) ?></p>
                         </li>
                         <li>
-                            <a class="dropdown-menu-item dropdown-item small py-2" href="<?= BASE_URL ?>settings">
+                            <a class="dropdown-item small py-2" href="<?= BASE_URL ?>settings">
                                 <i class="bi bi-person me-2"></i> Pengaturan Profil
                             </a>
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>
                         <li>
-                            <a class="dropdown-menu-item dropdown-item small py-2 text-danger" href="<?= BASE_URL ?>logout">
+                            <button type="button" class="dropdown-item small py-2 text-danger" data-bs-toggle="modal" data-bs-target="#logoutModal">
                                 <i class="bi bi-box-arrow-left me-2"></i> Keluar
-                            </a>
+                            </button>
                         </li>
                     </ul>
                 </div>
@@ -129,18 +132,35 @@ $hasNotification    = $_SESSION['has_unread_notification'] ?? false; // Ubah nil
             </div>
         </header>
 
-        <!-- MAIN CONTENT AREA (Dynamic Wrapper) -->
+        <!-- MAIN CONTENT AREA -->
         <main id="app-content">
             <?php 
-            // Tempat injecting/rendering konten halaman
             if (isset($viewContentPath) && file_exists($viewContentPath)) {
                 require_once $viewContentPath;
             }
+            echo $content ?? ''; 
             ?>
         </main>
 
     </div>
 
+</div>
+
+<!-- MODAL KONFIRMASI LOGOUT -->
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow rounded-4 p-2 text-center">
+            <div class="modal-body">
+                <i class="bi bi-exclamation-circle text-warning fs-1 mb-2 d-block"></i>
+                <h6 class="fw-bold text-dark mb-1">Konfirmasi Keluar</h6>
+                <p class="text-secondary small mb-4">Apakah kamu yakin ingin keluar dari akun ini?</p>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-light border w-50 py-2 rounded-3 fw-semibold small" data-bs-dismiss="modal">Batal</button>
+                    <a href="<?= BASE_URL ?>logout" class="btn btn-danger w-50 py-2 rounded-3 fw-semibold small text-decoration-none">Ya, Keluar</a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Bootstrap 5 JS Bundle -->

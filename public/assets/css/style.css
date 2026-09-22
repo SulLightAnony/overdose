@@ -1,7 +1,29 @@
-/* === login.php === */
-
+/* ==========================================================================
+   GLOBAL CONFIGURATION & FONTS
+   ========================================================================== */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
+:root {
+    --sidebar-bg: #1e293b; /* Warna abu-abu gelap konsisten */
+    --sidebar-hover: #334155;
+    --sidebar-text: #f8fafc;
+    --sidebar-text-muted: #94a3b8;
+}
+
+body {
+    background-color: #f8fafc;
+    min-height: 100vh;
+}
+
+/* Skeleton Loader Opacity Customization */
+.placeholder {
+    opacity: 0.35 !important;
+}
+
+
+/* ==========================================================================
+   1. LOGIN PAGE (login.php)
+   ========================================================================== */
 body.login-body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     background-color: #ffffff;
@@ -22,15 +44,15 @@ body.login-body {
     flex-direction: column;
     align-items: center;
     text-align: center;
-
-    & .wave-svg{
-        width:100vw;
-        position:absolute;
-        bottom:0px;
-    }
 }
 
-/* Logo Diperbesar */
+.login-container .wave-svg {
+    width: 100vw;
+    position: absolute;
+    bottom: 0px;
+}
+
+/* Logo Brand */
 .brand-logo {
     max-height: 200px;
     width: auto;
@@ -66,7 +88,6 @@ body.login-body {
     inset: -2px;
     border-radius: 14px;
     padding: 2.5px;
-    /* Warna kontras khas Google tanpa gradien halus */
     background: linear-gradient(
         90deg, 
         #34a853 0%, 
@@ -80,7 +101,6 @@ body.login-body {
     mask-composite: exclude;
     pointer-events: none;
     opacity: 0;
-    /* Mulai dari titik tengah bawah tertutup, lalu membuka ke samping dan atas */
     clip-path: inset(50% 50% 50% 50% round 14px);
     transition: clip-path 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
 }
@@ -92,7 +112,6 @@ body.login-body {
 
 .btn-google:hover::before {
     opacity: 1;
-    /* Membuka penuh mengelilingi seluruh tombol */
     clip-path: inset(0% 0% 0% 0% round 14px);
 }
 
@@ -102,7 +121,6 @@ body.login-body {
     flex-shrink: 0;
 }
 
-/* Teks Our Sanctuary (Tanpa Ikon) */
 .sanctuary-text {
     font-size: 0.8rem;
     font-weight: 600;
@@ -112,7 +130,6 @@ body.login-body {
     margin-bottom: 0;
 }
 
-/* Footer Made by Almusayid */
 .creator-footer {
     margin-top: 2.5rem;
     font-size: 0.75rem;
@@ -120,7 +137,6 @@ body.login-body {
     font-weight: 500;
 }
 
-/* Custom Alert Error */
 .alert-custom-danger {
     background-color: #fef2f2;
     border: 1px solid #fecaca;
@@ -131,7 +147,10 @@ body.login-body {
     margin-bottom: 1.25rem;
 }
 
-/* === settings.php === */
+
+/* ==========================================================================
+   2. SETTINGS & ONBOARDING PAGE (settings.php)
+   ========================================================================== */
 .onboarding-header {
     flex-shrink: 0;
 }
@@ -172,7 +191,7 @@ body.login-body {
     border-radius: 12px;
     padding: 0.8rem 1rem;
     border: 1px solid #cbd5e1;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .form-select-custom:focus {
@@ -185,20 +204,9 @@ body.login-body {
 }
 
 
-/* === layout.php === */
-:root {
-    --sidebar-bg: #1e293b; /* Warna abu-abu gelap konsisten */
-    --sidebar-hover: #334155;
-    --sidebar-text: #f8fafc;
-    --sidebar-text-muted: #94a3b8;
-}
-
-body {
-    background-color: #f8fafc;
-    min-height: 100vh;
-}
-
-/* Layout Wrapper */
+/* ==========================================================================
+   3. MAIN LAYOUT & NAVIGATION (layout.php)
+   ========================================================================== */
 .app-wrapper {
     display: flex;
     min-height: 100vh;
@@ -208,7 +216,7 @@ body {
 /* Sidebar Styling */
 .app-sidebar {
     width: 260px;
-    background-color: var(--sidebar-bg);
+    background-color: var(--sidebar-bg) !important;
     color: var(--sidebar-text);
     flex-shrink: 0;
     transition: all 0.3s ease-in-out;
@@ -309,7 +317,80 @@ body {
     padding: 1.5rem;
 }
 
-/* Responsive Handling untuk Offcanvas Desktop */
+
+/* ==========================================================================
+   4. DASHBOARD MODULE (dashboard.php)
+   ========================================================================== */
+.stat-card {
+    border-radius: 16px;
+    padding: 1.25rem 1rem;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-success {
+    background-color: #10b981;
+}
+
+.stat-card-warning {
+    background-color: #f59e0b;
+}
+
+.stat-card-danger {
+    background-color: #ef4444;
+}
+
+.stat-card-body {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-icon-wrapper {
+    font-size: 2rem;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-number {
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.transition-all {
+    transition: all 0.2s ease;
+}
+
+.hover-shadow:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+
+/* ==========================================================================
+   5. RESPONSIVE MEDIA QUERIES
+   ========================================================================== */
+@media (min-width: 750px) {
+    .wave-svg {
+        transform: translateY(50px);
+    }
+}
+
 @media (min-width: 992px) {
     .app-sidebar.offcanvas-lg {
         position: static !important;
@@ -319,22 +400,14 @@ body {
     }
 }
 
-
-/* === responsive === */
-@media (min-width: 750px) {
-    .wave-svg{
-        transform: translateY(50px);
-    }
-}
-
 @media (min-width: 1000px) {
-    .wave-svg{
+    .wave-svg {
         transform: translateY(100px);
     }
 }
 
 @media (min-width: 1250px) {
-    .wave-svg{
+    .wave-svg {
         transform: translateY(150px);
     }
 }
