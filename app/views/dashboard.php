@@ -99,6 +99,29 @@ ob_start();
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Jadwal Perkuliahan -->
+    <div class="row g-4 mt-1 mb-4">
+        <div class="col-md-6">
+            <div class="d-flex align-items-center mb-3">
+                <div class="bg-primary text-white rounded p-2 me-2 shadow-sm"><i class="bi bi-calendar-day"></i></div>
+                <h5 class="fw-bold mb-0">Jadwal Hari Ini (<span id="todayName">-</span>)</h5>
+            </div>
+            <div id="today-courses-container" class="d-flex flex-column gap-3">
+                <span class="spinner-border spinner-border-sm text-primary"></span>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="d-flex align-items-center mb-3">
+                <div class="bg-success text-white rounded p-2 me-2 shadow-sm"><i class="bi bi-calendar-plus"></i></div>
+                <h5 class="fw-bold mb-0">Jadwal Besok (<span id="tomorrowName">-</span>)</h5>
+            </div>
+            <div id="tomorrow-courses-container" class="d-flex flex-column gap-3">
+                <span class="spinner-border spinner-border-sm text-success"></span>
+            </div>
+        </div>
 
         <div class="card border-0 shadow-sm rounded-4 mb-4">
             <div class="card-body p-3 p-md-4">

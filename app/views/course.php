@@ -70,6 +70,35 @@ ob_start();
                                 <option value="Praktek">Praktek</option>
                             </select>
                         </div>
+                        <hr class="my-3 text-secondary opacity-25">
+                        <h6 class="fw-bold mb-2">Jadwal & Kelas</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold text-dark">Kelas</label>
+                                <input type="text" class="form-control rounded-3" id="courseClass" name="courseClass" placeholder="Contoh: 1A-D4">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold text-dark">Hari</label>
+                                <select class="form-select rounded-3" id="courseDay" name="courseDay">
+                                    <option value="">- Pilih Hari -</option>
+                                    <option value="Senin">Senin</option>
+                                    <option value="Selasa">Selasa</option>
+                                    <option value="Rabu">Rabu</option>
+                                    <option value="Kamis">Kamis</option>
+                                    <option value="Jumat">Jumat</option>
+                                    <option value="Sabtu">Sabtu</option>
+                                    <option value="Minggu">Minggu</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold text-dark">Jam Mulai</label>
+                                <input type="time" class="form-control rounded-3" id="startTime" name="startTime">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold text-dark">Jam Selesai</label>
+                                <input type="time" class="form-control rounded-3" id="endTime" name="endTime">
+                            </div>
+                        </div>
                         <div class="col-12">
                             <label class="form-label small fw-semibold text-dark">Deskripsi (Opsional)</label>
                             <textarea class="form-control rounded-3" id="courseDescription" name="courseDescription" rows="2" placeholder="Penjelasan singkat mata kuliah..."></textarea>

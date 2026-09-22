@@ -47,51 +47,58 @@ async function fetchCourses() {
                     const safeCourse = JSON.stringify(course).replace(/"/g, '&quot;');
                     actionButtons = `
                         <div class="position-absolute top-0 end-0 m-3 d-flex gap-1 z-3">
-                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1 style-icon" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;" onclick="openEditModal(${safeCourse})" title="Edit">
+                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1 style-icon" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation(); openEditModal(${safeCourse})" title="Edit">
                                 <i class="bi bi-pencil-fill text-dark" style="font-size:0.75rem;"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1 style-icon" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;" onclick="confirmDelete(${course.courseId})" title="Hapus">
+                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1 style-icon" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation(); confirmDelete(${course.courseId})" title="Hapus">
                                 <i class="bi bi-trash-fill text-danger" style="font-size:0.75rem;"></i>
                             </button>
                         </div>`;
                 }
 
-                const emailBtn = course.lecturerEmail ? `<a href="mailto:${course.lecturerEmail}" class="text-white text-opacity-75 hover-white style-icon"><i class="bi bi-envelope fs-5"></i></a>` : '';
+                // Kontak
+                const emailBtn = course.lecturerEmail ? `<a href="mailto:${course.lecturerEmail}" onclick="event.stopPropagation();" class="text-white text-opacity-75 hover-white style-icon"><i class="bi bi-envelope fs-5"></i></a>` : '';
                 const waNumber = course.lecturerPhone ? course.lecturerPhone.replace(/\D/g, '') : '';
-                const waBtn = waNumber ? `<a href="https://wa.me/${waNumber}" target="_blank" class="text-white text-opacity-75 hover-white style-icon"><i class="bi bi-whatsapp fs-5"></i></a>` : '';
+                const waBtn = waNumber ? `<a href="https://wa.me/${waNumber}" target="_blank" onclick="event.stopPropagation();" class="text-white text-opacity-75 hover-white style-icon"><i class="bi bi-whatsapp fs-5"></i></a>` : '';
 
+                // Format Waktu & Badge
+                const timeDisplay = course.startTime && course.endTime ? `${course.startTime.substring(0,5)} - ${course.endTime.substring(0,5)}` : 'Waktu TBA';
+                const dayDisplay = course.courseDay ? course.courseDay : 'Hari TBA';
                 const courseTypeBadge = (course.courseType === 'Praktek') 
-                    ? `<span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 mb-2 fw-semibold" style="font-size: 0.7rem;">Praktek</span>`
-                    : `<span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2.5 py-1 mb-2 fw-medium" style="font-size: 0.7rem;">Teori</span>`;
+                    ? `<span class="badge bg-warning text-dark px-3 py-1 fw-bold shadow-sm" style="font-size: 0.85rem;">PRAKTEK</span>`
+                    : `<span class="badge bg-white bg-opacity-25 text-white px-3 py-1 fw-bold shadow-sm" style="font-size: 0.85rem;">TEORI</span>`;
 
                 grid.innerHTML += `
                     <div class="col-12 col-md-6 col-lg-4">
-                        <div class="card card-gradient shadow-sm rounded-4 p-4 text-white h-100 d-flex flex-column" style="--card-bg: ${bg}; position: relative;">
+                        <div class="card card-gradient shadow-sm rounded-4 p-4 text-white h-100 d-flex flex-column" style="--card-bg: ${bg}; position: relative; cursor: pointer;" onclick="window.location.href='${detailUrl}'">
                             ${actionButtons}
                             
                             <div class="mb-3 flex-grow-1">
-                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                                    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2.5 py-1 mb-2 fw-medium" style="font-size: 0.72rem;">
+                                <div class="d-flex align-items-center gap-1.5 flex-wrap mb-1">
+                                    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2.5 py-1 fw-medium" style="font-size: 0.72rem;">
                                         ${course.courseCode}
                                     </span>
-                                    ${courseTypeBadge}
+                                    ${course.courseClass ? `<span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2.5 py-1 fw-medium" style="font-size: 0.72rem;">Kelas ${course.courseClass}</span>` : ''}
                                 </div>
-                                <h5 class="fw-bold mb-1 text-white fs-5 lh-sm pe-4">${course.courseTitle}</h5>
+                                <h4 class="fw-bold mb-2 text-white lh-sm pe-4">${course.courseTitle}</h4>
+                                <div class="mb-3">${courseTypeBadge}</div>
                                 <p class="small text-white-50 mb-0 line-clamp-2">${course.courseDescription || 'Tidak ada deskripsi.'}</p>
                             </div>
 
                             <div class="mt-auto pt-3 border-top border-white border-opacity-25">
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="bi bi-calendar-event fs-6 me-2 text-white-50"></i>
+                                    <div class="small fw-medium">${dayDisplay}, ${timeDisplay}</div>
+                                </div>
                                 <div class="d-flex align-items-center mb-3">
-                                    <i class="bi bi-person-circle fs-5 me-2 text-white-50"></i>
-                                    <div class="min-w-0">
-                                        <div class="small fw-semibold text-truncate">${course.lecturerName || 'Dosen Belum Diatur'}</div>
-                                    </div>
+                                    <i class="bi bi-person-circle fs-6 me-2 text-white-50"></i>
+                                    <div class="small fw-semibold text-truncate">${course.lecturerName || 'Dosen Belum Diatur'}</div>
                                 </div>
                                 
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <a href="${detailUrl}" class="text-white text-decoration-none small fw-semibold hover-white">
+                                    <span class="text-white text-decoration-none small fw-semibold">
                                         Lihat Tugas <i class="bi bi-arrow-right ms-1"></i>
-                                    </a>
+                                    </span>
                                     <div class="d-flex gap-2">
                                         ${emailBtn}
                                         ${waBtn}
@@ -129,6 +136,12 @@ function openAddModal() {
     document.getElementById("courseCode").value = "";
     document.getElementById("courseTitle").value = "";
     document.getElementById("courseType").value = "Teori";
+
+    document.getElementById("courseClass").value = "";
+    document.getElementById("courseDay").value = "";
+    document.getElementById("startTime").value = "";
+    document.getElementById("endTime").value = "";
+
     document.getElementById("courseDescription").value = "";
     document.getElementById("lecturerName").value = "";
     document.getElementById("lecturerEmail").value = "";
@@ -147,6 +160,12 @@ function openEditModal(course) {
     document.getElementById("courseCode").value = course.courseCode;
     document.getElementById("courseTitle").value = course.courseTitle;
     document.getElementById("courseType").value = course.courseType || "Teori";
+
+    document.getElementById("courseClass").value = course.courseClass || "";
+    document.getElementById("courseDay").value = course.courseDay || "";
+    document.getElementById("startTime").value = course.startTime || "";
+    document.getElementById("endTime").value = course.endTime || "";
+
     document.getElementById("courseDescription").value = course.courseDescription || "";
     document.getElementById("lecturerName").value = course.lecturerName || "";
     document.getElementById("lecturerEmail").value = course.lecturerEmail || "";

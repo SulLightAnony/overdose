@@ -102,6 +102,58 @@ try {
         // Tangkap error kueri jika data relasi kosong
     }
 
+    // TAMBAHAN: AMBIL JADWAL HARI INI & BESOK
+    $days = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
+    $todayIndex = (int)date('N');
+    $tomorrowIndex = $todayIndex + 1 > 7 ? 1 : $todayIndex + 1;
+    
+    $todayName = $days[$todayIndex];
+    $tomorrowName = $days[$tomorrowIndex];
+
+    // Memastikan hanya mengambil dari semester yang masih aktif (deletionStatus = 0)
+    // dan sesuai dengan atribut akademik user (angkatan, prodi, dll)
+    $stmtSchedule = $pdo->prepare("
+        SELECT c.* 
+        FROM courses c
+        JOIN semesters s ON c.semesterId = s.semesterId
+        WHERE s.deletionStatus = 0
+            AND s.majorType = :m 
+            AND s.studyProgram = :p 
+            AND s.classGroup = :c 
+            AND s.batchYear = :b
+            AND c.courseDay IN (:today, :tomorrow)
+        ORDER BY c.startTime ASC
+    ");
+    $stmtSchedule->execute([
+        'm' => $user['majorType'],
+        'p' => $user['studyProgram'],
+        'c' => $user['classGroup'],
+        'b' => $user['batchYear'],
+        'today' => $todayName,
+        'tomorrow' => $tomorrowName
+    ]);
+    
+    $schedule = $stmtSchedule->fetchAll(PDO::FETCH_ASSOC);
+    
+    $todayCourses = [];
+    $tomorrowCourses = [];
+    foreach ($schedule as $c) {
+        if ($c['courseDay'] === $todayName) { $todayCourses[] = $c; } 
+        else { $tomorrowCourses[] = $c; }
+    }
+
+    // --- UPDATE RESPONSE JSON ANDA MENJADI: ---
+    echo json_encode([
+        'success' => true,
+        'stats' => $stats, // Sesuaikan dengan variabel array stats Anda
+        'schedule' => [
+            'todayName' => $todayName,
+            'tomorrowName' => $tomorrowName,
+            'todayCourses' => $todayCourses,
+            'tomorrowCourses' => $tomorrowCourses
+        ]
+    ]);
+
     echo json_encode([
         'success' => true,
         'message' => 'OK',

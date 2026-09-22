@@ -12,9 +12,18 @@
 
 html, body {
     background-color: #f8fafc;
-    min-height: 100vh;
     max-width: 100vw;
-    overflow-x: hidden;
+    height: 100vh;
+    overflow: hidden !important; 
+    display: flex;
+    flex-direction: column;
+}
+
+#wrapper {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-grow: 1;
 }
 
 /* Custom Scrollbar Modern */
@@ -227,9 +236,9 @@ body.login-body {
    ========================================================================== */
 .app-wrapper {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
     width: 100%;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 .app-sidebar {
@@ -238,6 +247,8 @@ body.login-body {
     color: var(--sidebar-text);
     flex-shrink: 0;
     transition: all 0.3s ease-in-out;
+    height: 100vh;
+    overflow-y: auto;
 }
 
 .sidebar-brand-logo {
@@ -272,6 +283,8 @@ body.login-body {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    height: 100vh; /* Memastikan batas scroll tetap berada di dalam app-main */
+    overflow-y: auto;
     overflow-x: hidden;
 }
 
@@ -286,6 +299,18 @@ body.login-body {
     position: sticky;
     top: 0;
     z-index: 1020;
+    flex-shrink: 0;
+}
+
+/* Penataan Logo Title agar berada persis di Tengah Topbar */
+.app-topbar img[src*="logo_title.png"],
+.topbar-brand-logo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    max-height: 38px;
+    object-fit: contain;
 }
 
 .btn-nav-icon {
@@ -404,7 +429,7 @@ body.login-body {
 
 
 /* ==========================================================================
-   MODUL SEMESTER & MATA KULIAH (GRADIENT CARD & HOVER)
+   5. MODUL SEMESTER & MATA KULIAH (GRADIENT CARD & HOVER)
    ========================================================================== */
 .card-gradient {
     background-color: var(--card-bg, #3b82f6);
@@ -444,36 +469,30 @@ body.login-body {
     100% { left: 200%; }
 }
 
-.style-icon { transition: transform 0.2s ease; }
-.style-icon:hover { transform: scale(1.15); }
+.style-icon { 
+    transition: transform 0.2s ease; 
+}
+
+.style-icon:hover { 
+    transform: scale(1.15); 
+}
+
 .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
-.hover-white:hover { color: #ffffff !important; opacity: 1 !important; }
+
+.hover-white:hover { 
+    color: #ffffff !important; 
+    opacity: 1 !important; 
+}
+
 /* Pastikan teks di dalam card tetap di atas efek shine */
-.card-gradient > * { position: relative; z-index: 2; }
-
-.style-icon {
-    transition: transform 0.2s ease;
-}
-
-.style-icon:hover {
-    transform: scale(1.15);
-}
-
-.line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.hover-white:hover {
-    color: #ffffff !important;
-    opacity: 1 !important;
+.card-gradient > * { 
+    position: relative; 
+    z-index: 2; 
 }
 
 

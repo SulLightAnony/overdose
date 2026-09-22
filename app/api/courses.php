@@ -83,6 +83,10 @@ try {
         $lecturerEmail     = trim($_POST['lecturerEmail'] ?? '');
         $lecturerPhone     = trim($_POST['lecturerPhone'] ?? '');
         $backgroundColor   = trim($_POST['backgroundColor'] ?? '#10b981');
+        $courseClass       = trim($_POST['courseClass'] ?? '');
+        $courseDay         = trim($_POST['courseDay'] ?? '');
+        $startTime         = trim($_POST['startTime'] ?? '');
+        $endTime           = trim($_POST['endTime'] ?? '');
 
         if ($semesterId <= 0 || empty($courseCode) || empty($courseTitle)) {
             echo json_encode(['success' => false, 'message' => 'Kode dan Judul Matkul wajib diisi.']);
@@ -106,29 +110,25 @@ try {
         $stmtInsert = $pdo->prepare("
             INSERT INTO courses (
                 semesterId, semesterNumber, courseCode, courseTitle, courseType, 
+                courseClass, courseDay, startTime, endTime,
                 courseDescription, lecturerName, lecturerEmail, lecturerPhone, 
                 backgroundColor, majorType, studyProgram, classGroup, batchYear
             ) VALUES (
                 :semId, :semNum, :code, :title, :type, 
+                :class, :day, :start, :end,
                 :desc, :lname, :lemail, :lphone, 
                 :bg, :major, :prodi, :kelas, :batch
             )
         ");
+
         $stmtInsert->execute([
-            'semId'   => $semesterId,
-            'semNum'  => $sem['semesterNumber'],
-            'code'    => $courseCode,
-            'title'   => $courseTitle,
-            'type'    => $courseType,
-            'desc'    => $courseDescription,
-            'lname'   => $lecturerName,
-            'lemail'  => $lecturerEmail,
-            'lphone'  => $lecturerPhone,
-            'bg'      => $backgroundColor,
-            'major'   => $sem['majorType'],
-            'prodi'   => $sem['studyProgram'],
-            'kelas'   => $sem['classGroup'],
-            'batch'   => $sem['batchYear']
+            'semId'   => $semesterId, 'semNum' => $sem['semesterNumber'],
+            'code'    => $courseCode, 'title'  => $courseTitle, 'type' => $courseType,
+            'class'   => $courseClass, 'day'   => $courseDay, 'start'  => $startTime, 'end' => $endTime,
+            'desc'    => $courseDescription, 'lname' => $lecturerName, 
+            'lemail'  => $lecturerEmail, 'lphone' => $lecturerPhone, 'bg' => $backgroundColor,
+            'major'   => $sem['majorType'], 'prodi' => $sem['studyProgram'],
+            'kelas'   => $sem['classGroup'], 'batch' => $sem['batchYear']
         ]);
 
         echo json_encode(['success' => true, 'message' => 'Mata kuliah berhasil ditambahkan!']);
@@ -148,6 +148,10 @@ try {
         $lecturerEmail     = trim($inputData['lecturerEmail'] ?? '');
         $lecturerPhone     = trim($inputData['lecturerPhone'] ?? '');
         $backgroundColor   = trim($inputData['backgroundColor'] ?? '#10b981');
+        $courseClass       = trim($inputData['courseClass'] ?? '');
+        $courseDay         = trim($inputData['courseDay'] ?? '');
+        $startTime         = trim($inputData['startTime'] ?? '');
+        $endTime           = trim($inputData['endTime'] ?? '');
 
         if ($courseId <= 0 || empty($courseCode) || empty($courseTitle)) {
             echo json_encode(['success' => false, 'message' => 'Data edit tidak valid.']);
@@ -160,26 +164,17 @@ try {
 
         $stmtUpdate = $pdo->prepare("
             UPDATE courses 
-            SET courseCode = :code, 
-                courseTitle = :title, 
-                courseType = :type,
-                courseDescription = :desc, 
-                lecturerName = :lname, 
-                lecturerEmail = :lemail, 
-                lecturerPhone = :lphone, 
-                backgroundColor = :bg 
+            SET courseCode = :code, courseTitle = :title, courseType = :type,
+                courseClass = :class, courseDay = :day, startTime = :start, endTime = :end,
+                courseDescription = :desc, lecturerName = :lname, 
+                lecturerEmail = :lemail, lecturerPhone = :lphone, backgroundColor = :bg 
             WHERE courseId = :id
         ");
         $stmtUpdate->execute([
-            'code'   => $courseCode,
-            'title'  => $courseTitle,
-            'type'   => $courseType,
-            'desc'   => $courseDescription,
-            'lname'  => $lecturerName,
-            'lemail' => $lecturerEmail,
-            'lphone' => $lecturerPhone,
-            'bg'     => $backgroundColor,
-            'id'     => $courseId
+            'code'  => $courseCode, 'title' => $courseTitle, 'type' => $courseType,
+            'class' => $courseClass, 'day'  => $courseDay, 'start' => $startTime, 'end' => $endTime,
+            'desc'  => $courseDescription, 'lname' => $lecturerName, 
+            'lemail'=> $lecturerEmail, 'lphone'=> $lecturerPhone, 'bg' => $backgroundColor, 'id' => $courseId
         ]);
 
         echo json_encode(['success' => true, 'message' => 'Mata kuliah berhasil diperbarui!']);
