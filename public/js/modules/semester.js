@@ -44,11 +44,11 @@ async function fetchSemesters() {
                 let actionButtons = '';
                 if (canManageSemester) {
                     actionButtons = `
-                        <div class="position-absolute top-0 end-0 m-3 d-flex gap-1 z-3" style="z-index: 10; pointer-events: auto;">
-                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;" onclick="event.preventDefault(); event.stopPropagation(); openEditModal(${sem.semesterId}, ${sem.semesterNumber}, '${escapeQuotes(sem.semesterTitle)}', '${sem.backgroundColor}')" title="Edit">
+                        <div class="position-absolute top-0 end-0 m-3 d-flex gap-1" style="z-index: 100 !important; pointer-events: auto;">
+                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center; position:relative; z-index:101 !important; cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation(); openEditModal(${sem.semesterId}, ${sem.semesterNumber}, '${escapeQuotes(sem.semesterTitle)}', '${sem.backgroundColor}')" title="Edit">
                                 <i class="bi bi-pencil-fill text-dark style-icon" style="font-size:0.75rem;"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;" onclick="event.preventDefault(); event.stopPropagation(); deleteSemester(${sem.semesterId})" title="Hapus">
+                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center; position:relative; z-index:101 !important; cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation(); deleteSemester(${sem.semesterId})" title="Hapus">
                                 <i class="bi bi-trash-fill text-danger style-icon" style="font-size:0.75rem;"></i>
                             </button>
                         </div>`;

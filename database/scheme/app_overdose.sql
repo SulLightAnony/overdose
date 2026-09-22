@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 22 Sep 2026 pada 07.53
+-- Waktu pembuatan: 22 Sep 2026 pada 12.00
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -50,6 +50,13 @@ CREATE TABLE `courses` (
   `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
   `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data untuk tabel `courses`
+--
+
+INSERT INTO `courses` (`courseId`, `semesterId`, `semesterNumber`, `courseCode`, `courseTitle`, `courseType`, `courseClass`, `courseDay`, `startTime`, `endTime`, `courseDescription`, `lecturerName`, `lecturerEmail`, `lecturerPhone`, `backgroundColor`, `majorType`, `studyProgram`, `classGroup`, `batchYear`, `createdAt`, `updatedAt`) VALUES
+(3, 1, 3, '25TI2104', 'Sistem Basis Data', 'Teori', 'D224', 'Senin', '08:40:00', '10:20:00', 'Mata kuliah yang mengajarkan mengenai sistem dasar basis data.', '', '', '', '#10b981', 'D4', 'Teknik Informatika', 'C', 2025, '2026-09-22 09:40:01', '2026-09-22 09:40:01');
 
 -- --------------------------------------------------------
 
@@ -297,15 +304,16 @@ CREATE TABLE `semesters` (
   `deletedByUserId` varchar(255) DEFAULT NULL,
   `createdByUserId` int(11) DEFAULT NULL,
   `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `isActive` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data untuk tabel `semesters`
 --
 
-INSERT INTO `semesters` (`semesterId`, `semesterNumber`, `semesterTitle`, `backgroundColor`, `majorType`, `studyProgram`, `classGroup`, `batchYear`, `deletionStatus`, `deletedByUserId`, `createdByUserId`, `createdAt`, `updatedAt`) VALUES
-(1, 3, 'Semester 3 Ganjil', '#3b82f6', 'D4', 'Teknik Informatika', 'C', 2025, 0, NULL, 3, '2026-09-22 04:25:31', '2026-09-22 04:25:31');
+INSERT INTO `semesters` (`semesterId`, `semesterNumber`, `semesterTitle`, `backgroundColor`, `majorType`, `studyProgram`, `classGroup`, `batchYear`, `deletionStatus`, `deletedByUserId`, `createdByUserId`, `createdAt`, `updatedAt`, `isActive`) VALUES
+(1, 3, 'Semester 3 Ganjil', '#3b82f6', 'D4', 'Teknik Informatika', 'C', 2025, 0, NULL, 3, '2026-09-22 04:25:31', '2026-09-22 04:25:31', 0);
 
 -- --------------------------------------------------------
 
@@ -497,7 +505,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT untuk tabel `courses`
 --
 ALTER TABLE `courses`
-  MODIFY `courseId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `courseId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT untuk tabel `emailblacklists`
