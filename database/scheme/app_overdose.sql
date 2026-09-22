@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 22 Sep 2026 pada 05.44
+-- Waktu pembuatan: 22 Sep 2026 pada 07.07
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -29,6 +29,7 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `courses` (
   `courseId` int(11) NOT NULL,
+  `semesterId` int(11) NOT NULL,
   `semesterNumber` int(11) NOT NULL,
   `courseCode` varchar(50) NOT NULL,
   `courseTitle` varchar(150) NOT NULL,
@@ -36,6 +37,7 @@ CREATE TABLE `courses` (
   `lecturerName` varchar(150) DEFAULT NULL,
   `lecturerEmail` varchar(150) DEFAULT NULL,
   `lecturerPhone` varchar(50) DEFAULT NULL,
+  `backgroundColor` varchar(50) NOT NULL DEFAULT '#10b981',
   `majorType` varchar(50) NOT NULL,
   `studyProgram` varchar(100) NOT NULL,
   `classGroup` varchar(50) NOT NULL,
@@ -168,8 +170,108 @@ CREATE TABLE `quote_list` (
 
 INSERT INTO `quote_list` (`id`, `quote`, `author`) VALUES
 (1, 'Tugas apapun tidak akan terasa berat — apabila tidak dikerjakan.', 'Almusayid'),
-(2, 'Sebaik-baiknya deadline adalah yang masih besok.', 'Sepuh Polban'),
-(3, 'Error adalah cara kode menyapamu. Jangan panik.', 'Programmer Anonim');
+(2, 'Sebaik-baiknya deadline adalah yang masih besok.', 'Random'),
+(3, 'Error adalah cara kode menyapamu. Jangan panik.', 'Random'),
+(4, 'Tugas yang baik adalah tugas yang selesai, bukan yang hanya direnungkan.', 'Almusayid'),
+(5, 'Error 404: Semangat belajar tidak ditemukan.', 'Random'),
+(6, 'Tips: Minum air putih minimal 2 liter sehari agar otak tidak freeze saat ngoding.', 'Random'),
+(7, 'Fun Fact: Bahasa pemrograman Python dinamai dari acara komedi BBC, Monty Python.', 'Unknown'),
+(8, 'Jangan lupa git commit sebelum meninggalkan komputer.', 'Almusayid'),
+(9, 'Sebaik-baiknya deadline adalah deadline yang masih besok.', 'Random'),
+(10, 'Tips: Kalau stuck lebih dari 1 jam, jalan-jalan sebentar dan minum air hangat.', 'Unknown'),
+(11, 'Satu-satunya cara membuat kode tanpa bug adalah tidak menulis kode sama sekali.', 'Almusayid'),
+(12, 'Fun Fact: Bug komputer pertama di dunia adalah ngengat sungguhan yang terjebak di mesin Harvard Mark II.', 'Random'),
+(13, 'Jangan suka menunda tugas, nanti tugasnya beranak pinak.', 'Unknown'),
+(14, 'Kopi tidak menyelesaikan masalah, tapi membuatmu pusing dengan lebih cepat.', 'Almusayid'),
+(15, 'Kalau ada kodingan jalan tapi kamu gak tahu kenapa, jangan pernah disentuh lagi.', 'Random'),
+(16, 'Tips: Gunakan Ctrl + Z jika hidupmu terasa berantakan.', 'Unknown'),
+(17, 'Dosen tidak membenci kodinganmu, mereka hanya membenci format laporanmu.', 'Almusayid'),
+(18, 'Fun Fact: Karakter spasi mengambil memori di database. Hemat-hematlah spasi.', 'Random'),
+(19, 'Semakin lama kamu menunda, semakin cepat deadline mendekat.', 'Unknown'),
+(20, 'Makan siang berkarbohidrat tinggi bikin ngantuk pas kuliah siang. Pilih lauk berprotein.', 'Random'),
+(21, 'Jangan pernah pamer kode yang belum siap di-deploy.', 'Almusayid'),
+(22, 'Keyboard mekanik tidak membuat kodinganmu lebih cepat, hanya membuat ruangan lebih bising.', 'Random'),
+(23, 'Fun Fact: Barcode pertama kali digunakan pada bungkus permen karet Wrigley.', 'Unknown'),
+(24, 'Revisi adalah jalan ninja seorang mahasiswa.', 'Almusayid'),
+(25, 'Tips: Pasang alarm dengan nada dering yang paling kamu benci agar pasti terbangun.', 'Random'),
+(26, 'Kerapihan indentation menunjukkan kerapihan pikiran seorang programmer.', 'Unknown'),
+(27, 'Jangan percaya pada pesan \"It works on my machine\".', 'Almusayid'),
+(28, 'Fun Fact: Otak manusia menghasilkan listrik yang cukup untuk menyalakan lampu LED kecil.', 'Random'),
+(29, 'Kerjakan tugas dari yang paling sulit dulu selagi otak masih segar.', 'Unknown'),
+(30, 'Meriset error di Stack Overflow adalah skill utama seorang software engineer.', 'Almusayid'),
+(31, 'Tidur 7 jam semalam lebih efektif daripada begadang belajar semalaman.', 'Random'),
+(32, 'Jangan pakai nama variabel temp, x, atau data123 kalau tidak mau bingung besok.', 'Unknown'),
+(33, 'Fun Fact: Metode Rubber Duck Debugging (menjelaskan kode ke bebek karet) terbukti efektif memecahkan logika.', 'Almusayid'),
+(34, 'Semester tua bukanlah akhir dari dunia, tapi akhir dari masa santai.', 'Random'),
+(35, 'Tips: Buat backup file tugasmu di cloud storage sebelum laptop berulah.', 'Unknown'),
+(36, 'Kunci sukses presentasi: Pahami slide-mu, bukan hafalkan teksnya.', 'Almusayid'),
+(37, 'Fun Fact: Bahasa C diciptakan oleh Dennis Ritchie antara tahun 1969 dan 1973.', 'Random'),
+(38, 'Kodingan yang rapi adalah hadiah terbaik untuk dirimu di masa depan.', 'Unknown'),
+(39, 'Kalau tugas kelompok, pastikan kamu bukan satu-satunya orang yang bekerja.', 'Almusayid'),
+(40, 'Tips: Selalu cek koneksi internet sebelum memulai ujian online.', 'Random'),
+(41, 'Belajar konsisten 30 menit sehari jauh lebih baik daripada 10 jam dalam semalam.', 'Unknown'),
+(42, 'Fun Fact: Email diciptakan sebelum World Wide Web (WWW) lahir.', 'Almusayid'),
+(43, 'Jangan lupa bersyukur kalau program berhasil di-compile tanpa error di run pertama.', 'Random'),
+(44, 'Penundaan adalah pencuri waktu terhebat dalam perkuliahan.', 'Unknown'),
+(45, 'Tips: Gunakan shortcut keyboard (Ctrl+C, Ctrl+V, Alt+Tab) untuk menghemat waktu kerja.', 'Almusayid'),
+(46, 'Kuliah itu bukan cuma soal nilai IPK, tapi soal relasi dan pengalaman.', 'Random'),
+(47, 'Fun Fact: Nama \"Google\" berasal dari kata \"Googol\", yaitu angka 1 yang diikuti oleh 100 angka nol.', 'Unknown'),
+(48, 'Dokumentasi yang baik adalah tanda developer yang bertanggung jawab.', 'Almusayid'),
+(49, 'Tips: Hindari minum kopi di atas jam 6 sore jika ingin tidur nyenyak.', 'Random'),
+(50, 'Jangan lupa makan sebelum berangkat kuliah, otak butuh glukosa untuk berpikir.', 'Unknown'),
+(51, 'Fun Fact: QWERTY diciptakan untuk memperlambat pengetikan agar mesin ketik zaman dulu tidak macet.', 'Almusayid'),
+(52, 'Satu baris kode yang berfungsi jauh lebih baik daripada seribu baris rencana.', 'Random'),
+(53, 'Gunakan waktu luangmu untuk mempelajari hal baru, bukan cuma scrolling sosmed.', 'Unknown'),
+(54, 'First, solve the problem. Then, write the code.', 'Almusayid'),
+(55, 'Experience is the name everyone gives to their mistakes.', 'Random'),
+(56, 'Fun Fact: The first computer mouse was invented by Douglas Engelbart and was made of wood.', 'Unknown'),
+(57, 'Simplicity is the soul of efficiency.', 'Almusayid'),
+(58, 'Tips: Write clean comments to explain WHY you wrote the code, not WHAT the code is doing.', 'Random'),
+(59, 'Make it work, make it right, make it fast.', 'Unknown'),
+(60, 'Fun Fact: The total weight of all ants on Earth is roughly equal to the weight of all humans.', 'Random'),
+(61, 'Code is like humor. When you have to explain it, it is bad.', 'Almusayid'),
+(62, 'Don\'t cry because it\'s over, smile because it happened.', 'Unknown'),
+(63, 'Tips: Take breaks! A 10-minute walk can boost your mental focus for hours.', 'Random'),
+(64, 'Fun Fact: Venus is the only planet in solar system that rotates clockwise.', 'Unknown'),
+(65, 'Talk is cheap. Show me the code.', 'Almusayid'),
+(66, 'Software is a great combination between artistry and engineering.', 'Random'),
+(67, 'Tips: Always double-check your email attachments before clicking send.', 'Unknown'),
+(68, 'Fun Fact: Honey never spoils. Archeologists found 3,000-year-old edible honey in Egyptian tombs.', 'Almusayid'),
+(69, 'Premature optimization is the root of all evil.', 'Random'),
+(70, 'Testing leads to failure, and failure leads to understanding.', 'Unknown'),
+(71, 'Fun Fact: Space is completely silent because there is no atmosphere to transmit sound.', 'Random'),
+(72, 'Before software can be reusable it first has to be usable.', 'Almusayid'),
+(73, 'Tips: Keep your workstation clean and organized to reduce daily stress.', 'Unknown'),
+(74, 'Computers are fast; developers keep them slow.', 'Random'),
+(75, 'Fun Fact: The domain name symbolics.com was the very first .com domain registered in 1985.', 'Almusayid'),
+(76, 'The best error message is the one that never shows up.', 'Unknown'),
+(77, 'Tips: Drink a glass of water right when you wake up to jumpstart your metabolism.', 'Random'),
+(78, 'In order to be irreplaceable, one must always be different.', 'Almusayid'),
+(79, 'Fun Fact: A group of flamingos is called a \"flamboyance\".', 'Unknown'),
+(80, 'Good code is its own best documentation.', 'Random'),
+(81, 'Tips: Use a password manager to keep your accounts secure and easy to access.', 'Almusayid'),
+(82, 'Fix the cause, not the symptom.', 'Unknown'),
+(83, 'Fun Fact: Bananas are naturally radioactive because they contain high levels of potassium.', 'Random'),
+(84, '継続は力なり.', 'Almusayid'),
+(85, '七転び八起き.', 'Unknown'),
+(86, 'Fun Fact: 日本の自動販売機の数は世界一の密度です.', 'Random'),
+(87, '千里の道も一歩から.', 'Almusayid'),
+(88, '習うより慣れろ.', 'Unknown'),
+(89, 'Tips: 作業中に目を休めるために「20-20-20の法則」を試してみましょう.', 'Random'),
+(90, '初心忘るべからず .', 'Almusayid'),
+(91, 'Fun Fact: 富士山は実は3つの火山が重なってできています.', 'Unknown'),
+(92, '猿も木から落ちる.', 'Random'),
+(93, '井の中の蛙大海を知らず .', 'Almusayid'),
+(94, 'Tips: 睡眠不足はコードの品質を直接低下させます.', 'Unknown'),
+(95, 'Fun Fact: 抹茶は緑茶の一種ですが、光を遮って育てられます.', 'Random'),
+(96, '明日は明日の風が吹く', 'Almusayid'),
+(97, '一期一会 ', 'Unknown'),
+(98, 'Tips: 毎日小さなタスクを1つずつクリアしよう ', 'Random'),
+(99, 'Fun Fact: パスワードの「123456」は世界で最も使われている危険なパスワードです ', 'Almusayid'),
+(100, '失敗は成功のもと.', 'Unknown'),
+(101, '塵も積もれば山となる .', 'Random'),
+(102, 'Tips: デバッグに詰まったら、ラバーダックに説明してみよう .', 'Almusayid'),
+(103, '一石二鳥 ', 'Unknown');
 
 -- --------------------------------------------------------
 
@@ -186,10 +288,19 @@ CREATE TABLE `semesters` (
   `studyProgram` varchar(100) NOT NULL,
   `classGroup` varchar(50) NOT NULL,
   `batchYear` int(11) NOT NULL,
+  `deletionStatus` tinyint(1) NOT NULL DEFAULT 0,
+  `deletedByUserId` varchar(255) DEFAULT NULL,
   `createdByUserId` int(11) DEFAULT NULL,
   `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
   `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data untuk tabel `semesters`
+--
+
+INSERT INTO `semesters` (`semesterId`, `semesterNumber`, `semesterTitle`, `backgroundColor`, `majorType`, `studyProgram`, `classGroup`, `batchYear`, `deletionStatus`, `deletedByUserId`, `createdByUserId`, `createdAt`, `updatedAt`) VALUES
+(1, 3, 'Semester 3 Ganjil', '#3b82f6', 'D4', 'Teknik Informatika', 'C', 2025, 0, NULL, 3, '2026-09-22 04:25:31', '2026-09-22 04:25:31');
 
 -- --------------------------------------------------------
 
@@ -212,6 +323,7 @@ CREATE TABLE `taskcompletions` (
 CREATE TABLE `tasks` (
   `taskId` int(11) NOT NULL,
   `courseId` int(11) NOT NULL,
+  `semesterId` int(11) NOT NULL,
   `taskType` varchar(20) NOT NULL,
   `taskTitle` varchar(200) NOT NULL,
   `taskDescription` text NOT NULL,
@@ -262,7 +374,7 @@ CREATE TABLE `users` (
   `userName` varchar(150) NOT NULL,
   `emailAddress` varchar(150) NOT NULL,
   `avatarUrl` text DEFAULT NULL,
-  `roleLevel` enum('primordial','sepuh','member') NOT NULL DEFAULT 'member',
+  `roleLevel` enum('Primordial','Sepuh','Keroco') NOT NULL DEFAULT 'Keroco',
   `majorType` varchar(50) DEFAULT NULL,
   `studyProgram` varchar(100) DEFAULT NULL,
   `classGroup` varchar(50) DEFAULT NULL,
@@ -277,7 +389,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`userId`, `googleId`, `userName`, `emailAddress`, `avatarUrl`, `roleLevel`, `majorType`, `studyProgram`, `classGroup`, `batchYear`, `hideCompletedIdentity`, `createdAt`, `updatedAt`) VALUES
-(3, '104787523545969827644', '1C_Sulthan Faazaa Akbar Riyandoro_088', 'sulthan.faazaa.tif425@polban.ac.id', 'https://lh3.googleusercontent.com/a/ACg8ocIIwwKwgHfrSBlcqcebKxmJqLb5ccXfSj-HjXASk_l5Ymp7XbQ=s96-c', 'member', 'D4', 'Teknik Informatika', 'C', 2025, 0, '2026-09-22 02:56:23', '2026-09-22 02:56:40');
+(3, '104787523545969827644', '1C_Sulthan Faazaa Akbar Riyandoro_088', 'sulthan.faazaa.tif425@polban.ac.id', 'https://lh3.googleusercontent.com/a/ACg8ocIIwwKwgHfrSBlcqcebKxmJqLb5ccXfSj-HjXASk_l5Ymp7XbQ=s96-c', 'Primordial', 'D4', 'Teknik Informatika', 'C', 2025, 0, '2026-09-22 02:56:23', '2026-09-22 04:25:08');
 
 --
 -- Indexes for dumped tables
@@ -287,7 +399,8 @@ INSERT INTO `users` (`userId`, `googleId`, `userName`, `emailAddress`, `avatarUr
 -- Indeks untuk tabel `courses`
 --
 ALTER TABLE `courses`
-  ADD PRIMARY KEY (`courseId`);
+  ADD PRIMARY KEY (`courseId`),
+  ADD KEY `semesterId` (`semesterId`);
 
 --
 -- Indeks untuk tabel `emailblacklists`
@@ -344,7 +457,8 @@ ALTER TABLE `taskcompletions`
 ALTER TABLE `tasks`
   ADD PRIMARY KEY (`taskId`),
   ADD KEY `courseId` (`courseId`),
-  ADD KEY `createdByUserId` (`createdByUserId`);
+  ADD KEY `createdByUserId` (`createdByUserId`),
+  ADD KEY `semesterId` (`semesterId`);
 
 --
 -- Indeks untuk tabel `task_comments`
@@ -408,13 +522,13 @@ ALTER TABLE `prodi_list`
 -- AUTO_INCREMENT untuk tabel `quote_list`
 --
 ALTER TABLE `quote_list`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=104;
 
 --
 -- AUTO_INCREMENT untuk tabel `semesters`
 --
 ALTER TABLE `semesters`
-  MODIFY `semesterId` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `semesterId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT untuk tabel `tasks`
@@ -443,6 +557,12 @@ ALTER TABLE `users`
 --
 -- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)
 --
+
+--
+-- Ketidakleluasaan untuk tabel `courses`
+--
+ALTER TABLE `courses`
+  ADD CONSTRAINT `fk_courses_semesters` FOREIGN KEY (`semesterId`) REFERENCES `semesters` (`semesterId`) ON DELETE CASCADE;
 
 --
 -- Ketidakleluasaan untuk tabel `emailblacklists`
@@ -474,6 +594,7 @@ ALTER TABLE `semesters`
 -- Ketidakleluasaan untuk tabel `tasks`
 --
 ALTER TABLE `tasks`
+  ADD CONSTRAINT `fk_tasks_semesters` FOREIGN KEY (`semesterId`) REFERENCES `semesters` (`semesterId`) ON DELETE CASCADE,
   ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`courseId`) REFERENCES `courses` (`courseId`) ON DELETE CASCADE,
   ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`createdByUserId`) REFERENCES `users` (`userId`) ON DELETE SET NULL;
 
