@@ -1,23 +1,44 @@
 /* ==========================================================================
-   GLOBAL CONFIGURATION & FONTS
+   GLOBAL CONFIGURATION, FONTS, & SCROLLBAR
    ========================================================================== */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-    --sidebar-bg: #1e293b; /* Warna abu-abu gelap konsisten */
+    --sidebar-bg: #1e293b;
     --sidebar-hover: #334155;
     --sidebar-text: #f8fafc;
     --sidebar-text-muted: #94a3b8;
 }
 
-body {
+html, body {
     background-color: #f8fafc;
     min-height: 100vh;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
-/* Skeleton Loader Opacity Customization */
+/* Custom Scrollbar Modern */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Smooth Skeleton Animation */
 .placeholder {
-    opacity: 0.35 !important;
+    opacity: 0.25;
 }
 
 
@@ -52,7 +73,6 @@ body.login-body {
     bottom: 0px;
 }
 
-/* Logo Brand */
 .brand-logo {
     max-height: 200px;
     width: auto;
@@ -60,7 +80,6 @@ body.login-body {
     margin-bottom: 2.25rem;
 }
 
-/* Google OAuth Button */
 .btn-google {
     position: relative;
     background: #ffffff;
@@ -81,7 +100,6 @@ body.login-body {
     z-index: 1;
 }
 
-/* Animasi Stroke Border Mengelilingi dari Bawah Tengah ke Atas Tengah */
 .btn-google::before {
     content: '';
     position: absolute;
@@ -211,9 +229,9 @@ body.login-body {
     display: flex;
     min-height: 100vh;
     width: 100%;
+    overflow-x: hidden;
 }
 
-/* Sidebar Styling */
 .app-sidebar {
     width: 260px;
     background-color: var(--sidebar-bg) !important;
@@ -249,15 +267,14 @@ body.login-body {
     font-size: 1.2rem;
 }
 
-/* Main Area Container */
 .app-main {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
     min-width: 0;
+    overflow-x: hidden;
 }
 
-/* Topbar Styling */
 .app-topbar {
     height: 65px;
     background-color: #ffffff;
@@ -271,7 +288,6 @@ body.login-body {
     z-index: 1020;
 }
 
-/* Notification Bell & Red Dot */
 .btn-nav-icon {
     position: relative;
     width: 40px;
@@ -302,7 +318,6 @@ body.login-body {
     border: 2px solid #ffffff;
 }
 
-/* Profile Avatar */
 .user-avatar-circle {
     width: 38px;
     height: 38px;
@@ -311,10 +326,10 @@ body.login-body {
     border: 2px solid #e2e8f0;
 }
 
-/* Content Area */
 #app-content {
     flex-grow: 1;
     padding: 1.5rem;
+    overflow-x: hidden;
 }
 
 
@@ -327,6 +342,7 @@ body.login-body {
     color: #ffffff;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
 }
 
 .stat-card:hover {
@@ -349,21 +365,26 @@ body.login-body {
 .stat-card-body {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.8rem;
 }
 
 .stat-icon-wrapper {
-    font-size: 2rem;
+    font-size: 1.8rem;
     color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+}
+
+.stat-info {
+    min-width: 0;
 }
 
 .stat-number {
     font-weight: 700;
     color: #ffffff;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     line-height: 1;
 }
 
@@ -383,8 +404,37 @@ body.login-body {
 
 
 /* ==========================================================================
-   5. RESPONSIVE MEDIA QUERIES
+   5. RESPONSIVE MEDIA QUERIES (PERBAIKAN HP & TABLET)
    ========================================================================== */
+@media (max-width: 576px) {
+    #app-content {
+        padding: 1rem 0.75rem;
+    }
+
+    .stat-card {
+        padding: 0.85rem 0.6rem;
+        border-radius: 12px;
+    }
+
+    .stat-card-body {
+        gap: 0.4rem;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .stat-icon-wrapper {
+        font-size: 1.3rem;
+    }
+
+    .stat-number {
+        font-size: 1.1rem;
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+    }
+}
+
 @media (min-width: 750px) {
     .wave-svg {
         transform: translateY(50px);
