@@ -72,6 +72,23 @@ ob_start();
     </div>
 </div>
 
+<!-- Modal Konfirmasi Hapus Semester -->
+<div class="modal fade" id="modalDeleteConfirm" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-body p-4 text-center">
+                <i class="bi bi-exclamation-circle text-danger fs-1 mb-3 d-block"></i>
+                <h6 class="fw-bold text-dark">Hapus Semester?</h6>
+                <p class="text-muted small mb-4">Tindakan ini tidak dapat dibatalkan.</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-sm btn-danger rounded-pill px-4 fw-semibold" id="btnConfirmDelete">Hapus</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     const BASE_URL = "<?= BASE_URL ?>";
 </script>

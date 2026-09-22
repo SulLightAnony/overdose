@@ -66,6 +66,18 @@ switch ($path) {
         require 'app/api/semesters.php';
         break;
 
+    // Routing untuk Halaman Mata Kuliah
+    case 'semester/courses':
+        require 'app/views/course.php';
+        break;
+
+    // Routing untuk API Mata Kuliah
+    case 'api/courses':
+    case 'api/courses.php':
+    case 'app/api/courses.php':
+        require 'app/api/courses.php';
+        break;
+
     default:
         http_response_code(404);
         ?>

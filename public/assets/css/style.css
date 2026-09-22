@@ -404,7 +404,45 @@ body.login-body {
 
 
 /* ==========================================================================
-   5. RESPONSIVE MEDIA QUERIES (PERBAIKAN HP & TABLET)
+   MODUL SEMESTER & MATA KULIAH (GRADIENT CARD & HOVER)
+   ========================================================================== */
+.card-gradient {
+    /* Base color diambil dari inline CSS variable --card-bg */
+    background-color: var(--card-bg, #3b82f6);
+    /* Overlay gradient hitam transparan untuk memberikan efek gelap elegan */
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.25) 100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+    border: none;
+}
+
+.card-gradient:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+}
+
+.style-icon {
+    transition: transform 0.2s ease;
+}
+
+.style-icon:hover {
+    transform: scale(1.15);
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.hover-white:hover {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+
+/* ==========================================================================
+   RESPONSIVE MEDIA QUERIES (PERBAIKAN HP & TABLET)
    ========================================================================== */
 @media (max-width: 576px) {
     #app-content {

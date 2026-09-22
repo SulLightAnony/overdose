@@ -56,7 +56,7 @@ async function fetchSemesters() {
 
                 grid.innerHTML += `
                     <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                        <div class="card border-0 shadow-sm rounded-4 p-4 text-white position-relative hover-shadow transition-all h-100" style="background-color: ${bg}; min-height: 140px; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div class="card card-gradient border-0 shadow-sm rounded-4 p-4 text-white position-relative h-100" style="--card-bg: ${bg}; min-height: 140px; display: flex; flex-direction: column; justify-content: space-between;">
                             ${actionButtons}
                             <a href="${detailUrl}" class="text-white text-decoration-none d-block h-100 d-flex flex-column justify-content-between">
                                 <div>
@@ -175,25 +175,42 @@ async function handleFormSubmit(e) {
     }
 }
 
-async function deleteSemester(id) {
-    if (!confirm("Apakah kamu yakin ingin menghapus semester ini?")) return;
+let semesterToDelete = null;
+
+function deleteSemester(id) {
+    semesterToDelete = id;
+    const modal = new bootstrap.Modal(document.getElementById("modalDeleteConfirm"));
+    modal.show();
+}
+
+document.getElementById("btnConfirmDelete")?.addEventListener("click", async function() {
+    if (!semesterToDelete) return;
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
 
     try {
         const apiUrl = (typeof BASE_URL !== 'undefined' ? BASE_URL : '') + 'app/api/semesters.php';
         const response = await fetch(apiUrl, {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ semesterId: id })
+            body: JSON.stringify({ semesterId: semesterToDelete })
         });
-
         const res = await response.json();
         if (res.success) {
+            const modalEl = document.getElementById("modalDeleteConfirm");
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
             fetchSemesters();
         } else {
             alert(res.message || "Gagal menghapus semester.");
         }
     } catch (err) {
-        console.error("Error deleting semester:", err);
         alert("Terjadi kesalahan jaringan.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        semesterToDelete = null;
     }
-}
+});
