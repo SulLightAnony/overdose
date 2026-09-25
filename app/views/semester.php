@@ -62,6 +62,13 @@ ob_start();
                         <label class="form-label small fw-semibold text-dark">Warna Card Background</label>
                         <input type="color" class="form-control form-control-color w-100 rounded-3" id="backgroundColor" name="backgroundColor" value="#3b82f6">
                     </div>
+                    <div class="mb-2 form-check form-switch p-2 bg-light border rounded-3 d-flex align-items-center justify-content-between px-3">
+                        <div>
+                            <label class="form-check-label small fw-semibold text-dark d-block" for="isActiveSwitch">Jadikan Semester Aktif</label>
+                            <span class="text-muted d-block" style="font-size: 0.72rem;">Hanya 1 semester yang bisa aktif dalam satu waktu.</span>
+                        </div>
+                        <input class="form-check-input ms-0 mt-0 fs-5" type="checkbox" role="switch" id="isActiveSwitch" name="isActive" value="1">
+                    </div>
                 </div>
                 <div class="modal-footer border-top bg-light rounded-bottom-4">
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>

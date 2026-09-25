@@ -5,82 +5,127 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/app/config/config.php';
 
-// Ambil path dari URL
-$requestUri = $_SERVER['REQUEST_URI'];
-$basePath = parse_url(BASE_URL, PHP_URL_PATH);
+// Ambil path URL tanpa query string dan tanpa prefix instalasi aplikasi.
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$basePath = rtrim(parse_url(BASE_URL, PHP_URL_PATH) ?: '', '/');
 
-// Bersihkan base path dari request URI
-if (strpos($requestUri, $basePath) === 0) {
-    $path = substr($requestUri, strlen($basePath));
-} else {
-    $path = $requestUri;
+if ($basePath !== '' && strpos($requestPath, $basePath) === 0) {
+    $requestPath = substr($requestPath, strlen($basePath));
 }
 
-$path = trim(parse_url($path, PHP_URL_PATH), '/');
+$path = trim($requestPath, '/');
+if (str_starts_with($path, 'index.php')) {
+    $path = trim(substr($path, strlen('index.php')), '/');
+}
 
-// Routing sederhana
-switch ($path) {
-    case '':
-    case 'dashboard':
-        require 'app/views/dashboard.php';
-        break;
+// Support both clean URLs and the legacy query-string entry point.
+if ($path === '' && isset($_GET['page'])) {
+    $path = trim((string)$_GET['page'], '/');
+}
 
-    case 'semester':
-        require 'app/views/semester.php';
-        break;
+$viewRoutes = [
+    '' => 'app/views/dashboard.php',
+    'dashboard' => 'app/views/dashboard.php',
+    'tasks' => 'app/views/tasks.php',
+    'tasks.php' => 'app/views/tasks.php',
+    'app/views/tasks.php' => 'app/views/tasks.php',
+    'semester' => 'app/views/semester.php',
+    'semester/courses' => 'app/views/course.php',
+    'course-detail' => 'app/views/course_detail.php',
+    'course_detail.php' => 'app/views/course_detail.php',
+    'app/views/course_detail.php' => 'app/views/course_detail.php',
+    'task-detail' => 'app/views/task_detail.php',
+    'task_detail.php' => 'app/views/task_detail.php',
+    'app/views/task_detail.php' => 'app/views/task_detail.php',
+    'material-detail' => 'app/views/material_detail.php',
+    'material_detail.php' => 'app/views/material_detail.php',
+    'app/views/material_detail.php' => 'app/views/material_detail.php',
+    'task-answers' => 'app/views/task_answers.php',
+    'task_answers.php' => 'app/views/task_answers.php',
+    'app/views/task_answers.php' => 'app/views/task_answers.php',
+    'login' => 'app/views/login.php',
+    'configuration' => 'app/views/configurations.php',
+    'configurations' => 'app/views/configurations.php',
+    'configurations.php' => 'app/views/configurations.php',
+    'app/views/configurations.php' => 'app/views/configurations.php',
+    'user-management' => 'app/views/user_management.php',
+    'users' => 'app/views/user_management.php',
+    'blacklist' => 'app/views/blacklist.php',
+    'blacklist-email' => 'app/views/blacklist.php',
+    'settings' => 'app/views/configurations.php'
+];
 
-    case 'login':
-        require 'app/views/login.php';
-        break;
+$apiRoutes = [
+    'api/dashboard' => 'app/api/dashboard.php',
+    'api/dashboard.php' => 'app/api/dashboard.php',
+    'app/api/dashboard.php' => 'app/api/dashboard.php',
+    'api/semesters' => 'app/api/semesters.php',
+    'api/semesters.php' => 'app/api/semesters.php',
+    'app/api/semesters.php' => 'app/api/semesters.php',
+    'api/courses' => 'app/api/courses.php',
+    'api/courses.php' => 'app/api/courses.php',
+    'app/api/courses.php' => 'app/api/courses.php',
+    'api/tasks' => 'app/api/tasks.php',
+    'api/tasks.php' => 'app/api/tasks.php',
+    'app/api/tasks.php' => 'app/api/tasks.php',
+    'api/materials' => 'app/api/materials.php',
+    'api/materials.php' => 'app/api/materials.php',
+    'app/api/materials.php' => 'app/api/materials.php',
+    'api/task_answers' => 'app/api/task_answers.php',
+    'api/task_answers.php' => 'app/api/task_answers.php',
+    'app/api/task_answers.php' => 'app/api/task_answers.php',
+    'api/notifications' => 'app/api/notifications.php',
+    'api/notifications.php' => 'app/api/notifications.php',
+    'app/api/notifications.php' => 'app/api/notifications.php',
+    'api/configurations' => 'app/api/configurations.php',
+    'api/configurations.php' => 'app/api/configurations.php',
+    'app/api/configurations.php' => 'app/api/configurations.php',
+    'api/auth/google' => 'app/api/auth/google_redirect.php',
+    'api/auth/google/callback' => 'app/api/auth/google_callback.php',
+    'api/auth/logout' => 'app/api/auth/logout.php',
+    'api/user/onboarding' => 'app/api/user/onboarding.php'
+];
 
-    case 'settings':
-        require 'app/views/settings.php';
-        break;
+$requireRoute = static function (string $relativePath): void {
+    $absolutePath = __DIR__ . '/' . $relativePath;
+    if (!is_file($absolutePath)) {
+        throw new RuntimeException('Route target tidak ditemukan');
+    }
+    require $absolutePath;
+};
 
-    // Routing API Endpoint
-    case 'api/auth/google':
-        require 'app/api/auth/google_redirect.php';
-        break;
+// Kompatibilitas dengan URL lama dari course.js: /tasks?courseId=X.
+if ($path === 'tasks') {
+    $courseId = (int)($_GET['courseId'] ?? 0);
+    if ($courseId <= 0) {
+        $requireRoute('app/views/tasks.php');
+        exit;
+    }
+    $_GET['id'] = $courseId;
+    $requireRoute('app/views/course_detail.php');
+    exit;
+}
 
-    case 'api/auth/google/callback':
-        require 'app/api/auth/google_callback.php';
-        break;
+if (isset($viewRoutes[$path])) {
+    $requireRoute($viewRoutes[$path]);
+    exit;
+}
 
-    case 'api/auth/logout':
-        require 'app/api/auth/logout.php';
-        break;
+if (isset($apiRoutes[$path])) {
+    $requireRoute($apiRoutes[$path]);
+    exit;
+}
 
-    case 'api/user/onboarding':
-        require 'app/api/user/onboarding.php';
-        break;
+$isApiRequest = str_starts_with($path, 'api/');
+http_response_code(404);
+if ($isApiRequest || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => false, 'message' => 'Endpoint tidak ditemukan', 'data' => null]);
+    exit;
+}
 
-    case 'api/dashboard':
-    case 'api/dashboard.php':
-    case 'app/api/dashboard.php':
-        require 'app/api/dashboard.php';
-        break;
-
-    case 'api/semesters':
-    case 'api/semesters.php':
-    case 'app/api/semesters.php':
-        require 'app/api/semesters.php';
-        break;
-
-    // Routing untuk Halaman Mata Kuliah
-    case 'semester/courses':
-        require 'app/views/course.php';
-        break;
-
-    // Routing untuk API Mata Kuliah
-    case 'api/courses':
-    case 'api/courses.php':
-    case 'app/api/courses.php':
-        require 'app/api/courses.php';
-        break;
-
-    default:
-        http_response_code(404);
-        ?>
+http_response_code(404);
+?>
         <!DOCTYPE html>
         <html lang="id">
         <head>
@@ -101,7 +146,7 @@ switch ($path) {
                 
                 <br>
                 <h1 class="fw-bold text-dark mb-2 fs-3">404 — Page Not Found!</h1>
-                <p class="text-secondary medium mb-4">Nyari apa banh? Ga ada yang begitu di sini😛</p>
+                <p class="text-secondary medium mb-4">Halaman yang diminta tidak ditemukan.</p>
 
                 <a href="<?= BASE_URL ?>" class="btn btn-dark px-4 py-2 rounded-3 fw-semibold text-decoration-none">
                     Balik aja dah
@@ -109,6 +154,4 @@ switch ($path) {
             </div>
         </body>
         </html>
-        <?php
-        break;
-}
+    <?php

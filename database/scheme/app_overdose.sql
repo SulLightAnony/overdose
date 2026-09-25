@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 22 Sep 2026 pada 12.00
+-- Waktu pembuatan: 24 Sep 2026 pada 12.50
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -69,6 +69,7 @@ CREATE TABLE `emailblacklists` (
   `emailAddress` varchar(150) NOT NULL,
   `reasonDescription` text DEFAULT NULL,
   `addedByUserId` int(11) DEFAULT NULL,
+  `blockedByRole` enum('Primordial','Sepuh') DEFAULT NULL,
   `createdAt` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -81,12 +82,32 @@ CREATE TABLE `emailblacklists` (
 CREATE TABLE `learning_material` (
   `materialId` int(11) NOT NULL,
   `courseId` int(11) NOT NULL,
+  `semesterId` int(11) NOT NULL,
   `materialTitle` varchar(200) NOT NULL,
   `materialDescription` text DEFAULT NULL,
-  `fileUrl` text NOT NULL,
+  `fileUrl` text DEFAULT NULL,
   `uploadedByUserId` int(11) DEFAULT NULL,
+  `lastEditedByUserId` int(11) DEFAULT NULL,
   `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `deletionStatus` tinyint(1) NOT NULL DEFAULT 0,
+  `deletedByUserId` int(11) DEFAULT NULL,
+  `deletedAt` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `material_files`
+--
+
+CREATE TABLE `material_files` (
+  `fileId` int(11) NOT NULL,
+  `materialId` int(11) NOT NULL,
+  `filePath` text NOT NULL,
+  `fileName` varchar(255) NOT NULL,
+  `fileSize` int(11) DEFAULT 0,
+  `uploadedAt` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -100,6 +121,8 @@ CREATE TABLE `notifications` (
   `userId` int(11) NOT NULL,
   `notificationTitle` varchar(150) NOT NULL,
   `notificationMessage` text NOT NULL,
+  `notificationType` enum('new_task','reminder_h1','overdue','general') NOT NULL DEFAULT 'general',
+  `targetUrl` varchar(255) DEFAULT NULL,
   `relatedTaskId` int(11) DEFAULT NULL,
   `isRead` tinyint(1) NOT NULL DEFAULT 0,
   `createdAt` timestamp NOT NULL DEFAULT current_timestamp()
@@ -301,7 +324,7 @@ CREATE TABLE `semesters` (
   `classGroup` varchar(50) NOT NULL,
   `batchYear` int(11) NOT NULL,
   `deletionStatus` tinyint(1) NOT NULL DEFAULT 0,
-  `deletedByUserId` varchar(255) DEFAULT NULL,
+  `deletedByUserId` int(11) DEFAULT NULL,
   `createdByUserId` int(11) DEFAULT NULL,
   `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
   `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -313,19 +336,8 @@ CREATE TABLE `semesters` (
 --
 
 INSERT INTO `semesters` (`semesterId`, `semesterNumber`, `semesterTitle`, `backgroundColor`, `majorType`, `studyProgram`, `classGroup`, `batchYear`, `deletionStatus`, `deletedByUserId`, `createdByUserId`, `createdAt`, `updatedAt`, `isActive`) VALUES
-(1, 3, 'Semester 3 Ganjil', '#3b82f6', 'D4', 'Teknik Informatika', 'C', 2025, 0, NULL, 3, '2026-09-22 04:25:31', '2026-09-22 04:25:31', 0);
-
--- --------------------------------------------------------
-
---
--- Struktur dari tabel `taskcompletions`
---
-
-CREATE TABLE `taskcompletions` (
-  `taskId` int(11) NOT NULL,
-  `userId` int(11) NOT NULL,
-  `completedAt` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+(1, 3, 'Semester 3 Ganjil', '#3b82f6', 'D4', 'Teknik Informatika', 'C', 2025, 0, NULL, 3, '2026-09-22 04:25:31', '2026-09-22 12:59:31', 1),
+(2, 2, '1', '#f73b3b', 'D4', 'Teknik Informatika', 'C', 2025, 1, NULL, NULL, '2026-09-22 10:23:12', '2026-09-22 10:23:56', 0);
 
 -- --------------------------------------------------------
 
@@ -344,9 +356,20 @@ CREATE TABLE `tasks` (
   `attachmentUrl` text DEFAULT NULL,
   `aiExplanation` text DEFAULT NULL,
   `createdByUserId` int(11) DEFAULT NULL,
+  `lastEditedByUserId` int(11) DEFAULT NULL,
   `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `deletionStatus` tinyint(1) NOT NULL DEFAULT 0,
+  `deletedByUserId` int(11) DEFAULT NULL,
+  `deletedAt` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data untuk tabel `tasks`
+--
+
+INSERT INTO `tasks` (`taskId`, `courseId`, `semesterId`, `taskType`, `taskTitle`, `taskDescription`, `dueDate`, `attachmentUrl`, `aiExplanation`, `createdByUserId`, `lastEditedByUserId`, `createdAt`, `updatedAt`, `deletionStatus`, `deletedByUserId`, `deletedAt`) VALUES
+(1, 3, 1, 'Teori', 'aaaa', 'heheheheh', '2026-09-24 19:11:00', NULL, NULL, 3, NULL, '2026-09-24 08:08:00', '2026-09-24 08:09:39', 1, 3, '2026-09-24 08:09:39');
 
 -- --------------------------------------------------------
 
@@ -357,10 +380,17 @@ CREATE TABLE `tasks` (
 CREATE TABLE `task_comments` (
   `commentId` int(11) NOT NULL,
   `taskId` int(11) NOT NULL,
-  `userId` int(11) NOT NULL,
+  `userId` int(11) DEFAULT NULL,
   `commentContent` text NOT NULL,
   `createdAt` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data untuk tabel `task_comments`
+--
+
+INSERT INTO `task_comments` (`commentId`, `taskId`, `userId`, `commentContent`, `createdAt`) VALUES
+(1, 1, 3, 'SUSAH BAGET', '2026-09-24 08:08:58');
 
 -- --------------------------------------------------------
 
@@ -371,8 +401,61 @@ CREATE TABLE `task_comments` (
 CREATE TABLE `task_completions` (
   `completionId` int(11) NOT NULL,
   `taskId` int(11) NOT NULL,
-  `userId` int(11) NOT NULL,
+  `userId` int(11) DEFAULT NULL,
   `completedAt` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data untuk tabel `task_completions`
+--
+
+INSERT INTO `task_completions` (`completionId`, `taskId`, `userId`, `completedAt`) VALUES
+(1, 1, 3, '2026-09-24 08:09:15');
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `task_files`
+--
+
+CREATE TABLE `task_files` (
+  `fileId` int(11) NOT NULL,
+  `taskId` int(11) NOT NULL,
+  `filePath` text NOT NULL,
+  `fileName` varchar(255) NOT NULL,
+  `fileSize` int(11) DEFAULT 0,
+  `uploadedAt` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `task_shared_answers`
+--
+
+CREATE TABLE `task_shared_answers` (
+  `answerId` int(11) NOT NULL,
+  `taskId` int(11) NOT NULL,
+  `userId` int(11) DEFAULT NULL,
+  `answerTitle` varchar(200) NOT NULL,
+  `answerNotes` text DEFAULT NULL,
+  `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `task_shared_answer_files`
+--
+
+CREATE TABLE `task_shared_answer_files` (
+  `fileId` int(11) NOT NULL,
+  `answerId` int(11) NOT NULL,
+  `filePath` text NOT NULL,
+  `fileName` varchar(255) NOT NULL,
+  `fileSize` int(11) DEFAULT 0,
+  `uploadedAt` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -392,7 +475,10 @@ CREATE TABLE `users` (
   `studyProgram` varchar(100) DEFAULT NULL,
   `classGroup` varchar(50) DEFAULT NULL,
   `batchYear` int(11) DEFAULT NULL,
-  `hideCompletedIdentity` tinyint(1) NOT NULL DEFAULT 0,
+  `isAnonymous` tinyint(1) NOT NULL DEFAULT 0,
+  `enableNotifications` tinyint(1) NOT NULL DEFAULT 1,
+  `userStatus` enum('active','blocked') NOT NULL DEFAULT 'active',
+  `blockedByRole` enum('Primordial','Sepuh') DEFAULT NULL,
   `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
   `updatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -401,8 +487,23 @@ CREATE TABLE `users` (
 -- Dumping data untuk tabel `users`
 --
 
-INSERT INTO `users` (`userId`, `googleId`, `userName`, `emailAddress`, `avatarUrl`, `roleLevel`, `majorType`, `studyProgram`, `classGroup`, `batchYear`, `hideCompletedIdentity`, `createdAt`, `updatedAt`) VALUES
-(3, '104787523545969827644', '1C_Sulthan Faazaa Akbar Riyandoro_088', 'sulthan.faazaa.tif425@polban.ac.id', 'https://lh3.googleusercontent.com/a/ACg8ocIIwwKwgHfrSBlcqcebKxmJqLb5ccXfSj-HjXASk_l5Ymp7XbQ=s96-c', 'Primordial', 'D4', 'Teknik Informatika', 'C', 2025, 0, '2026-09-22 02:56:23', '2026-09-22 04:25:08');
+INSERT INTO `users` (`userId`, `googleId`, `userName`, `emailAddress`, `avatarUrl`, `roleLevel`, `majorType`, `studyProgram`, `classGroup`, `batchYear`, `isAnonymous`, `enableNotifications`, `userStatus`, `blockedByRole`, `createdAt`, `updatedAt`) VALUES
+(3, '104787523545969827644', '1C_Sulthan Faazaa Akbar Riyandoro_088', 'sulthan.faazaa.tif425@polban.ac.id', 'https://lh3.googleusercontent.com/a/ACg8ocIIwwKwgHfrSBlcqcebKxmJqLb5ccXfSj-HjXASk_l5Ymp7XbQ=s96-c', 'Primordial', 'D4', 'Teknik Informatika', 'C', 2025, 0, 1, 'active', NULL, '2026-09-22 02:56:23', '2026-09-22 04:25:08');
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `user_push_subscriptions`
+--
+
+CREATE TABLE `user_push_subscriptions` (
+  `subscriptionId` int(11) NOT NULL,
+  `userId` int(11) NOT NULL,
+  `endpoint` text NOT NULL,
+  `p256dhKey` varchar(255) NOT NULL,
+  `authToken` varchar(255) NOT NULL,
+  `createdAt` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Indexes for dumped tables
@@ -429,7 +530,18 @@ ALTER TABLE `emailblacklists`
 ALTER TABLE `learning_material`
   ADD PRIMARY KEY (`materialId`),
   ADD KEY `courseId` (`courseId`),
-  ADD KEY `uploadedByUserId` (`uploadedByUserId`);
+  ADD KEY `uploadedByUserId` (`uploadedByUserId`),
+  ADD KEY `fk_material_semesters` (`semesterId`),
+  ADD KEY `fk_material_last_edited` (`lastEditedByUserId`),
+  ADD KEY `idx_material_deletionStatus` (`deletionStatus`),
+  ADD KEY `idx_material_deletedByUserId` (`deletedByUserId`);
+
+--
+-- Indeks untuk tabel `material_files`
+--
+ALTER TABLE `material_files`
+  ADD PRIMARY KEY (`fileId`),
+  ADD KEY `materialId` (`materialId`);
 
 --
 -- Indeks untuk tabel `notifications`
@@ -437,7 +549,8 @@ ALTER TABLE `learning_material`
 ALTER TABLE `notifications`
   ADD PRIMARY KEY (`notificationId`),
   ADD KEY `userId` (`userId`),
-  ADD KEY `relatedTaskId` (`relatedTaskId`);
+  ADD KEY `relatedTaskId` (`relatedTaskId`),
+  ADD UNIQUE KEY `uq_notifications_task_user_type` (`userId`,`relatedTaskId`,`notificationType`);
 
 --
 -- Indeks untuk tabel `prodi_list`
@@ -456,13 +569,8 @@ ALTER TABLE `quote_list`
 --
 ALTER TABLE `semesters`
   ADD PRIMARY KEY (`semesterId`),
-  ADD KEY `createdByUserId` (`createdByUserId`);
-
---
--- Indeks untuk tabel `taskcompletions`
---
-ALTER TABLE `taskcompletions`
-  ADD PRIMARY KEY (`taskId`,`userId`);
+  ADD KEY `createdByUserId` (`createdByUserId`),
+  ADD KEY `fk_semesters_deleted_by` (`deletedByUserId`);
 
 --
 -- Indeks untuk tabel `tasks`
@@ -471,7 +579,10 @@ ALTER TABLE `tasks`
   ADD PRIMARY KEY (`taskId`),
   ADD KEY `courseId` (`courseId`),
   ADD KEY `createdByUserId` (`createdByUserId`),
-  ADD KEY `semesterId` (`semesterId`);
+  ADD KEY `semesterId` (`semesterId`),
+  ADD KEY `fk_tasks_last_edited` (`lastEditedByUserId`),
+  ADD KEY `idx_tasks_deletionStatus` (`deletionStatus`),
+  ADD KEY `idx_tasks_deletedByUserId` (`deletedByUserId`);
 
 --
 -- Indeks untuk tabel `task_comments`
@@ -479,7 +590,7 @@ ALTER TABLE `tasks`
 ALTER TABLE `task_comments`
   ADD PRIMARY KEY (`commentId`),
   ADD KEY `taskId` (`taskId`),
-  ADD KEY `userId` (`userId`);
+  ADD KEY `task_comments_ibfk_2` (`userId`);
 
 --
 -- Indeks untuk tabel `task_completions`
@@ -490,12 +601,41 @@ ALTER TABLE `task_completions`
   ADD KEY `taskId` (`taskId`);
 
 --
+-- Indeks untuk tabel `task_files`
+--
+ALTER TABLE `task_files`
+  ADD PRIMARY KEY (`fileId`),
+  ADD KEY `taskId` (`taskId`);
+
+--
+-- Indeks untuk tabel `task_shared_answers`
+--
+ALTER TABLE `task_shared_answers`
+  ADD PRIMARY KEY (`answerId`),
+  ADD KEY `taskId` (`taskId`),
+  ADD KEY `userId` (`userId`);
+
+--
+-- Indeks untuk tabel `task_shared_answer_files`
+--
+ALTER TABLE `task_shared_answer_files`
+  ADD PRIMARY KEY (`fileId`),
+  ADD KEY `answerId` (`answerId`);
+
+--
 -- Indeks untuk tabel `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`userId`),
   ADD UNIQUE KEY `googleId` (`googleId`),
   ADD UNIQUE KEY `emailAddress` (`emailAddress`);
+
+--
+-- Indeks untuk tabel `user_push_subscriptions`
+--
+ALTER TABLE `user_push_subscriptions`
+  ADD PRIMARY KEY (`subscriptionId`),
+  ADD KEY `userId` (`userId`);
 
 --
 -- AUTO_INCREMENT untuk tabel yang dibuang
@@ -520,6 +660,12 @@ ALTER TABLE `learning_material`
   MODIFY `materialId` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT untuk tabel `material_files`
+--
+ALTER TABLE `material_files`
+  MODIFY `fileId` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT untuk tabel `notifications`
 --
 ALTER TABLE `notifications`
@@ -541,31 +687,55 @@ ALTER TABLE `quote_list`
 -- AUTO_INCREMENT untuk tabel `semesters`
 --
 ALTER TABLE `semesters`
-  MODIFY `semesterId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `semesterId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT untuk tabel `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `taskId` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `taskId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT untuk tabel `task_comments`
 --
 ALTER TABLE `task_comments`
-  MODIFY `commentId` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `commentId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT untuk tabel `task_completions`
 --
 ALTER TABLE `task_completions`
-  MODIFY `completionId` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `completionId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT untuk tabel `task_files`
+--
+ALTER TABLE `task_files`
+  MODIFY `fileId` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT untuk tabel `task_shared_answers`
+--
+ALTER TABLE `task_shared_answers`
+  MODIFY `answerId` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT untuk tabel `task_shared_answer_files`
+--
+ALTER TABLE `task_shared_answer_files`
+  MODIFY `fileId` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT untuk tabel `users`
 --
 ALTER TABLE `users`
   MODIFY `userId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT untuk tabel `user_push_subscriptions`
+--
+ALTER TABLE `user_push_subscriptions`
+  MODIFY `subscriptionId` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)
@@ -587,8 +757,17 @@ ALTER TABLE `emailblacklists`
 -- Ketidakleluasaan untuk tabel `learning_material`
 --
 ALTER TABLE `learning_material`
+  ADD CONSTRAINT `fk_material_deleted_by` FOREIGN KEY (`deletedByUserId`) REFERENCES `users` (`userId`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_material_last_edited` FOREIGN KEY (`lastEditedByUserId`) REFERENCES `users` (`userId`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_material_semesters` FOREIGN KEY (`semesterId`) REFERENCES `semesters` (`semesterId`) ON DELETE CASCADE,
   ADD CONSTRAINT `learning_material_ibfk_1` FOREIGN KEY (`courseId`) REFERENCES `courses` (`courseId`) ON DELETE CASCADE,
   ADD CONSTRAINT `learning_material_ibfk_2` FOREIGN KEY (`uploadedByUserId`) REFERENCES `users` (`userId`) ON DELETE SET NULL;
+
+--
+-- Ketidakleluasaan untuk tabel `material_files`
+--
+ALTER TABLE `material_files`
+  ADD CONSTRAINT `fk_material_files_materials` FOREIGN KEY (`materialId`) REFERENCES `learning_material` (`materialId`) ON DELETE CASCADE;
 
 --
 -- Ketidakleluasaan untuk tabel `notifications`
@@ -601,12 +780,15 @@ ALTER TABLE `notifications`
 -- Ketidakleluasaan untuk tabel `semesters`
 --
 ALTER TABLE `semesters`
+  ADD CONSTRAINT `fk_semesters_deleted_by` FOREIGN KEY (`deletedByUserId`) REFERENCES `users` (`userId`) ON DELETE SET NULL,
   ADD CONSTRAINT `semesters_ibfk_1` FOREIGN KEY (`createdByUserId`) REFERENCES `users` (`userId`) ON DELETE SET NULL;
 
 --
 -- Ketidakleluasaan untuk tabel `tasks`
 --
 ALTER TABLE `tasks`
+  ADD CONSTRAINT `fk_tasks_deleted_by` FOREIGN KEY (`deletedByUserId`) REFERENCES `users` (`userId`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_tasks_last_edited` FOREIGN KEY (`lastEditedByUserId`) REFERENCES `users` (`userId`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_tasks_semesters` FOREIGN KEY (`semesterId`) REFERENCES `semesters` (`semesterId`) ON DELETE CASCADE,
   ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`courseId`) REFERENCES `courses` (`courseId`) ON DELETE CASCADE,
   ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`createdByUserId`) REFERENCES `users` (`userId`) ON DELETE SET NULL;
@@ -616,14 +798,39 @@ ALTER TABLE `tasks`
 --
 ALTER TABLE `task_comments`
   ADD CONSTRAINT `task_comments_ibfk_1` FOREIGN KEY (`taskId`) REFERENCES `tasks` (`taskId`) ON DELETE CASCADE,
-  ADD CONSTRAINT `task_comments_ibfk_2` FOREIGN KEY (`userId`) REFERENCES `users` (`userId`) ON DELETE CASCADE;
+  ADD CONSTRAINT `task_comments_ibfk_2` FOREIGN KEY (`userId`) REFERENCES `users` (`userId`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Ketidakleluasaan untuk tabel `task_completions`
 --
 ALTER TABLE `task_completions`
   ADD CONSTRAINT `task_completions_ibfk_1` FOREIGN KEY (`taskId`) REFERENCES `tasks` (`taskId`) ON DELETE CASCADE,
-  ADD CONSTRAINT `task_completions_ibfk_2` FOREIGN KEY (`userId`) REFERENCES `users` (`userId`) ON DELETE CASCADE;
+  ADD CONSTRAINT `task_completions_ibfk_2` FOREIGN KEY (`userId`) REFERENCES `users` (`userId`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Ketidakleluasaan untuk tabel `task_files`
+--
+ALTER TABLE `task_files`
+  ADD CONSTRAINT `fk_task_files_tasks` FOREIGN KEY (`taskId`) REFERENCES `tasks` (`taskId`) ON DELETE CASCADE;
+
+--
+-- Ketidakleluasaan untuk tabel `task_shared_answers`
+--
+ALTER TABLE `task_shared_answers`
+  ADD CONSTRAINT `fk_shared_answers_tasks` FOREIGN KEY (`taskId`) REFERENCES `tasks` (`taskId`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_shared_answers_users` FOREIGN KEY (`userId`) REFERENCES `users` (`userId`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Ketidakleluasaan untuk tabel `task_shared_answer_files`
+--
+ALTER TABLE `task_shared_answer_files`
+  ADD CONSTRAINT `fk_answer_files_answers` FOREIGN KEY (`answerId`) REFERENCES `task_shared_answers` (`answerId`) ON DELETE CASCADE;
+
+--
+-- Ketidakleluasaan untuk tabel `user_push_subscriptions`
+--
+ALTER TABLE `user_push_subscriptions`
+  ADD CONSTRAINT `fk_push_users` FOREIGN KEY (`userId`) REFERENCES `users` (`userId`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

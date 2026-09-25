@@ -107,7 +107,7 @@ async function fetchDashboardData() {
                                         </small>
                                     </div>
                                 </div>
-                                <a href="${baseUrlPath}task/detail?id=${task.taskId}" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold">Detail</a>
+                                <a href="${baseUrlPath}task-detail?id=${task.taskId}" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold">Detail</a>
                             </div>
                         `;
                     });

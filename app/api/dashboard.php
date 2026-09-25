@@ -102,7 +102,7 @@ try {
         // Tangkap error kueri jika data relasi kosong
     }
 
-    // 3. Ambil Jadwal Hari Ini & Besok
+    // 3. Ambil Jadwal Hari Ini & Besok (Difilter khusus Semester Aktif / Fallback ke Semester Terbaru)
     $days = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
     $todayIndex = (int)date('N');
     $tomorrowIndex = $todayIndex + 1 > 7 ? 1 : $todayIndex + 1;
@@ -122,16 +122,48 @@ try {
                 AND s.studyProgram = :studyProgram
                 AND s.classGroup = :classGroup
                 AND s.batchYear = :batchYear
+                                AND s.semesterId = COALESCE(
+                    (
+                                                SELECT semesterId
+                        FROM semesters
+                        WHERE deletionStatus = 0
+                                                    AND majorType = :activeMajorType
+                                                    AND studyProgram = :activeStudyProgram
+                                                    AND classGroup = :activeClassGroup
+                                                    AND batchYear = :activeBatchYear
+                          AND isActive = 1
+                        LIMIT 1
+                    ),
+                    (
+                                                SELECT semesterId
+                        FROM semesters
+                        WHERE deletionStatus = 0
+                                                    AND majorType = :fallbackMajorType
+                                                    AND studyProgram = :fallbackStudyProgram
+                                                    AND classGroup = :fallbackClassGroup
+                                                    AND batchYear = :fallbackBatchYear
+                        ORDER BY semesterNumber DESC, semesterId DESC
+                        LIMIT 1
+                    )
+                )
                 AND c.courseDay IN (:today, :tomorrow)
             ORDER BY c.startTime ASC
         ");
         $stmtSchedule->execute([
-            'majorType' => $majorType,
+            'majorType'    => $majorType,
             'studyProgram' => $studyProgram,
-            'classGroup' => $classGroup,
-            'batchYear' => $batchYear,
-            'today' => $todayName,
-            'tomorrow' => $tomorrowName
+            'classGroup'   => $classGroup,
+            'batchYear'    => $batchYear,
+            'activeMajorType' => $majorType,
+            'activeStudyProgram' => $studyProgram,
+            'activeClassGroup' => $classGroup,
+            'activeBatchYear' => $batchYear,
+            'fallbackMajorType' => $majorType,
+            'fallbackStudyProgram' => $studyProgram,
+            'fallbackClassGroup' => $classGroup,
+            'fallbackBatchYear' => $batchYear,
+            'today'        => $todayName,
+            'tomorrow'     => $tomorrowName
         ]);
 
         foreach ($stmtSchedule->fetchAll(PDO::FETCH_ASSOC) as $course) {
@@ -162,7 +194,7 @@ try {
                 'userId'     => (int)$userId,
                 'name'       => $userData['userName'],
                 'avatarUrl'  => $userData['avatarUrl'] ?? '',
-                'role'       => $userData['roleLevel'] ?? 'member',
+                'role'       => $userData['roleLevel'] ?? 'Keroco',
                 'totalTasks' => $myTasksCount
             ],
             'schedule'        => [

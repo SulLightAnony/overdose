@@ -52,7 +52,7 @@ function requireAuth(): void {
 function requireRole(array $allowedRoles): void {
     requireAuth();
 
-    $userRole = $_SESSION['role_level'] ?? 'member';
+    $userRole = $_SESSION['role_level'] ?? 'Keroco';
 
     if (!in_array($userRole, $allowedRoles, true)) {
         if (isApiRequest()) {
@@ -77,7 +77,7 @@ function getCurrentUser(): ?array {
         'userId'                => $_SESSION['user_id'],
         'userName'              => $_SESSION['user_name'] ?? '',
         'emailAddress'          => $_SESSION['email_address'] ?? '',
-        'roleLevel'             => $_SESSION['role_level'] ?? 'member',
+        'roleLevel'             => $_SESSION['role_level'] ?? 'Keroco',
         'avatarUrl'             => $_SESSION['avatar_url'] ?? '',
         'majorType'             => $_SESSION['major_type'] ?? null,
         'studyProgram'          => $_SESSION['study_program'] ?? null,

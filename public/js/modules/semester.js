@@ -38,14 +38,18 @@ async function fetchSemesters() {
 
             grid.innerHTML = "";
             res.data.forEach(sem => {
-                const bg = sem.backgroundColor || '#3b82f6';
+                const isActive = Number(sem.isActive) === 1;
+                const bg = isActive ? (sem.backgroundColor || '#3b82f6') : '#cbd5e1';
                 const detailUrl = (typeof BASE_URL !== 'undefined' ? BASE_URL : '') + 'semester/courses?id=' + sem.semesterId;
+                const courseLinkLabel = isActive
+                    ? 'Lihat Mata Kuliah<i class="bi bi-arrow-right ms-1"></i>'
+                    : 'Semester ini tidak aktif.';
 
                 let actionButtons = '';
                 if (canManageSemester) {
                     actionButtons = `
                         <div class="position-absolute top-0 end-0 m-3 d-flex gap-1" style="z-index: 100 !important; pointer-events: auto;">
-                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center; position:relative; z-index:101 !important; cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation(); openEditModal(${sem.semesterId}, ${sem.semesterNumber}, '${escapeQuotes(sem.semesterTitle)}', '${sem.backgroundColor}')" title="Edit">
+                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center; position:relative; z-index:101 !important; cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation(); openEditModal(${sem.semesterId}, ${sem.semesterNumber}, '${escapeQuotes(sem.semesterTitle)}', '${sem.backgroundColor}', ${isActive})" title="Edit">
                                 <i class="bi bi-pencil-fill text-dark style-icon" style="font-size:0.75rem;"></i>
                             </button>
                             <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center; position:relative; z-index:101 !important; cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation(); deleteSemester(${sem.semesterId})" title="Hapus">
@@ -59,14 +63,14 @@ async function fetchSemesters() {
                         <div class="card card-gradient border-0 shadow-sm rounded-4 p-4 text-white position-relative h-100" style="--card-bg: ${bg}; min-height: 140px; display: flex; flex-direction: column; justify-content: space-between;">
                             <a href="${detailUrl}" class="text-white text-decoration-none d-block h-100 d-flex flex-column justify-content-between">
                                 <div>
-                                    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2.5 py-1 mb-2 fw-medium" style="font-size: 0.72rem;">
-                                        Semester ${sem.semesterNumber}
-                                    </span>
+                                    <div class="mb-2">
+                                        <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2.5 py-1 fw-medium" style="font-size: 0.72rem;">
+                                            Semester ${sem.semesterNumber}
+                                        </span>
+                                    </div>
                                     <h5 class="fw-bold mb-0 text-white fs-5 lh-sm">${sem.semesterTitle}</h5>
                                 </div>
-                                <div class="mt-3 text-white-50 small fw-semibold d-flex align-items-center">
-                                    Lihat Mata Kuliah<i class="bi bi-arrow-right ms-1"></i>
-                                </div>
+                                <div class="mt-3 text-white-50 small fw-semibold d-flex align-items-center">${courseLinkLabel}</div>
                             </a>
                             ${actionButtons}
                         </div>
@@ -104,15 +108,17 @@ function openAddModal() {
     document.getElementById("semesterNumber").value = "";
     document.getElementById("semesterTitle").value = "";
     document.getElementById("backgroundColor").value = "#3b82f6";
+    document.getElementById("isActiveSwitch").checked = false;
 }
 
-function openEditModal(id, number, title, bg) {
+function openEditModal(id, number, title, bg, isActive) {
     document.getElementById("modalSemesterTitle").textContent = "Edit Semester";
     document.getElementById("semesterId").value = id;
     document.getElementById("formMethod").value = "PUT";
     document.getElementById("semesterNumber").value = number;
     document.getElementById("semesterTitle").value = title;
     document.getElementById("backgroundColor").value = bg || "#3b82f6";
+    document.getElementById("isActiveSwitch").checked = Boolean(isActive);
 
     const modalEl = document.getElementById("modalSemester");
     if (modalEl) {
@@ -131,6 +137,8 @@ async function handleFormSubmit(e) {
     const form = e.target;
     const formData = new FormData(form);
     const method = formData.get("_method") || "POST";
+    const isActive = document.getElementById("isActiveSwitch")?.checked ? "1" : "0";
+    formData.set("isActive", isActive);
 
     try {
         const apiUrl = (typeof BASE_URL !== 'undefined' ? BASE_URL : '') + 'app/api/semesters.php';
@@ -141,7 +149,8 @@ async function handleFormSubmit(e) {
                 semesterId: formData.get("semesterId"),
                 semesterNumber: formData.get("semesterNumber"),
                 semesterTitle: formData.get("semesterTitle"),
-                backgroundColor: formData.get("backgroundColor")
+                backgroundColor: formData.get("backgroundColor"),
+                isActive: isActive
             };
 
             response = await fetch(apiUrl, {

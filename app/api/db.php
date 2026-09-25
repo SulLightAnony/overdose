@@ -12,6 +12,11 @@ try {
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
 } catch (\PDOException $e) {
     http_response_code(500);
-    echo json_encode(["status" => false, "message" => "Koneksi database gagal: " . $e->getMessage()]);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success' => false,
+        'message' => 'Koneksi database gagal.',
+        'data' => null
+    ]);
     exit;
 }

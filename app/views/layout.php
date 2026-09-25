@@ -21,6 +21,7 @@ if (isset($_SESSION['user_id'])) {
 
 $userName        = $userName ?? ($_SESSION['user_name'] ?? 'Pengguna');
 $userAvatar      = $userAvatar ?? ($_SESSION['user_avatar'] ?? BASE_URL . 'public/assets/img/logo.png');
+$userRole        = $_SESSION['role_level'] ?? 'Keroco';
 $hasNotification = $_SESSION['has_unread_notification'] ?? false;
 ?>
 <!DOCTYPE html>
@@ -63,17 +64,42 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="<?= BASE_URL ?>tasks" class="nav-link <?= (isset($activeMenu) && $activeMenu === 'tasks') ? 'active' : '' ?>">
+                        <i class="bi bi-card-checklist"></i>
+                        <span>Daftar Tugas</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="<?= BASE_URL ?>semester" class="nav-link <?= (isset($activeMenu) && $activeMenu === 'semester') ? 'active' : '' ?>">
                         <i class="bi bi-journal-bookmark-fill"></i>
                         <span>Semester & Matkul</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="<?= BASE_URL ?>configuration" class="nav-link <?= (isset($activeMenu) && $activeMenu === 'settings') ? 'active' : '' ?>">
+                    <a href="<?= BASE_URL ?>configurations" class="nav-link <?= (isset($activeMenu) && $activeMenu === 'configurations') ? 'active' : '' ?>">
                         <i class="bi bi-gear-fill"></i>
                         <span>Pengaturan</span>
                     </a>
                 </li>
+                <?php if ($userRole === 'Primordial' || $userRole === 'Sepuh'): ?>
+                <li class="my-2">
+                    <hr class="border-secondary opacity-25 m-0">
+                </li>
+                <?php if ($userRole === 'Primordial'): ?>
+                <li class="nav-item">
+                    <a href="<?= BASE_URL ?>user-management" class="nav-link <?= (isset($activeMenu) && $activeMenu === 'user-management') ? 'active' : '' ?>">
+                        <i class="bi bi-people-fill"></i>
+                        <span>Pengguna</span>
+                    </a>
+                </li>
+                <?php endif; ?>
+                <li class="nav-item">
+                    <a href="<?= BASE_URL ?>blacklist" class="nav-link <?= (isset($activeMenu) && $activeMenu === 'blacklist') ? 'active' : '' ?>">
+                        <i class="bi bi-shield-x"></i>
+                        <span>Blacklist Email</span>
+                    </a>
+                </li>
+                <?php endif; ?>
             </ul>
 
             <!-- Tombol Keluar (Memicu Modal) -->
@@ -98,13 +124,22 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
             </div>
 
             <div class="d-flex align-items-center gap-2">
-                <!-- Ikon Lonceng Notifikasi (HREF ke /notifications) -->
-                <a href="<?= BASE_URL ?>notifications" class="btn btn-nav-icon position-relative text-decoration-none" title="Notifikasi">
-                    <i class="bi bi-bell fs-5"></i>
-                    <?php if ($hasNotification): ?>
-                        <span class="red-dot-indicator"></span>
-                    <?php endif; ?>
-                </a>
+                <!-- Ikon Lonceng Notifikasi -->
+                <div class="dropdown">
+                    <button type="button" class="btn btn-nav-icon position-relative" id="notificationDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifikasi">
+                        <i class="bi bi-bell fs-5"></i>
+                        <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"></span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-0" id="notificationDropdown" aria-labelledby="notificationDropdownBtn" style="width: min(360px, calc(100vw - 2rem));">
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                            <strong>Notifikasi</strong>
+                            <button type="button" class="btn btn-link btn-sm text-decoration-none p-0" id="btnMarkAllRead">Tandai dibaca</button>
+                        </div>
+                        <div id="notificationListContainer" class="overflow-auto" style="max-height: 420px;">
+                            <div class="text-center p-3 text-muted">Memuat notifikasi...</div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Avatar Profil Pengguna Google -->
                 <div class="dropdown">
@@ -116,7 +151,7 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
                             <p class="mb-0 fw-semibold text-dark small"><?= htmlspecialchars($userName) ?></p>
                         </li>
                         <li>
-                            <a class="dropdown-item small py-2" href="<?= BASE_URL ?>configuration">
+                            <a class="dropdown-item small py-2" href="<?= BASE_URL ?>configurations">
                                 <i class="bi bi-person me-2"></i> Pengaturan Profil
                             </a>
                         </li>
@@ -165,6 +200,7 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
 
 <!-- Bootstrap 5 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="<?= BASE_URL ?>public/js/modules/notifications.js"></script>
 
 </body>
 </html>

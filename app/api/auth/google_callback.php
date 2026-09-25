@@ -106,7 +106,7 @@ if (!$user) {
     $isNewUser = true;
     $insertStmt = $pdo->prepare("
         INSERT INTO users (googleId, userName, emailAddress, avatarUrl, roleLevel)
-        VALUES (:googleId, :userName, :emailAddress, :avatarUrl, 'member')
+        VALUES (:googleId, :userName, :emailAddress, :avatarUrl, 'Keroco')
     ");
     $insertStmt->execute([
         'googleId'     => $googleId,
