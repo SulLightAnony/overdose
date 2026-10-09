@@ -299,6 +299,7 @@ try {
         }
 
         // Cascade Deletion Protocol: Kumpulkan semua child drive_folder_id dari tugas, materi, dan jawaban di bawah semester ini
+        @set_time_limit(180);
         $driveFolderIds = [];
 
         // 1. Dari tabel tasks

@@ -73,7 +73,7 @@ require_once __DIR__ . '/DriveManager.php';
 
 header('Content-Type: application/json');
 
-function saveMaterialAttachments(PDO $pdo, int $materialId, int $userId, array $files, ?string &$newlyCreatedFolderId = null): void
+function saveMaterialAttachments(PDO $pdo, int $materialId, int $userId, array $files, ?string &$newlyCreatedFolderId = null, array &$newlyUploadedFileIds = []): void
 {
     if (!DriveManager::hasFiles($files)) {
         return;
@@ -105,6 +105,7 @@ function saveMaterialAttachments(PDO $pdo, int $materialId, int $userId, array $
              VALUES (:materialId, :filePath, :fileName, :fileSize, NOW())'
         );
         foreach ($uploadedFiles as $file) {
+            $newlyUploadedFileIds[] = $file['fileId'];
             $stmtFile->execute([
                 'materialId' => $materialId,
                 'filePath'   => $file['filePath'],
@@ -310,6 +311,7 @@ try {
             }
 
             $newlyCreatedFolderId = null;
+            $newlyUploadedFileIds = [];
             $pdo->beginTransaction();
 
             try {
@@ -340,7 +342,7 @@ try {
                 }
                 $newMaterialId = (int)$pdo->lastInsertId();
 
-                saveMaterialAttachments($pdo, $newMaterialId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId);
+                saveMaterialAttachments($pdo, $newMaterialId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId, $newlyUploadedFileIds);
 
                 $pdo->commit();
                 echo json_encode(['success' => true, 'message' => 'Materi berhasil dibagikan. +1 Poin Kontribusi!']);
@@ -353,6 +355,12 @@ try {
                     try {
                         DriveManager::getInstance()->deleteFolder($newlyCreatedFolderId);
                     } catch (Throwable $ignored) {}
+                } elseif (!empty($newlyUploadedFileIds)) {
+                    foreach ($newlyUploadedFileIds as $fileId) {
+                        try {
+                            DriveManager::getInstance()->deleteFile($fileId);
+                        } catch (Throwable $ignored) {}
+                    }
                 }
                 http_response_code(500);
                 echo json_encode(['success' => false, 'message' => 'Gagal menambahkan materi: ' . $e->getMessage()]);
@@ -387,6 +395,7 @@ try {
         }
 
         $newlyCreatedFolderId = null;
+        $newlyUploadedFileIds = [];
         $pdo->beginTransaction();
 
         try {
@@ -403,7 +412,7 @@ try {
                 'materialId' => $materialId
             ]);
 
-            saveMaterialAttachments($pdo, $materialId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId);
+            saveMaterialAttachments($pdo, $materialId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId, $newlyUploadedFileIds);
 
             $pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Materi berhasil diperbarui']);
@@ -416,6 +425,12 @@ try {
                 try {
                     DriveManager::getInstance()->deleteFolder($newlyCreatedFolderId);
                 } catch (Throwable $ignored) {}
+            } elseif (!empty($newlyUploadedFileIds)) {
+                foreach ($newlyUploadedFileIds as $fileId) {
+                    try {
+                        DriveManager::getInstance()->deleteFile($fileId);
+                    } catch (Throwable $ignored) {}
+                }
             }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Gagal memperbarui materi: ' . $e->getMessage()]);
@@ -438,14 +453,26 @@ try {
                 exit;
             }
 
-            $stmtFile = $pdo->prepare('SELECT filePath FROM material_files WHERE fileId = :fileId');
+            $stmtFile = $pdo->prepare('
+                SELECT mf.filePath, lm.deletionStatus 
+                FROM material_files mf
+                JOIN learning_material lm ON mf.materialId = lm.materialId
+                WHERE mf.fileId = :fileId
+            ');
             $stmtFile->execute(['fileId' => $fileId]);
-            $filePath = $stmtFile->fetchColumn();
-            if ($filePath === false) {
+            $fileRow = $stmtFile->fetch(PDO::FETCH_ASSOC);
+            if (!$fileRow) {
                 http_response_code(404);
                 echo json_encode(['success' => false, 'message' => 'Lampiran tidak ditemukan.']);
                 exit;
             }
+            if ((int)$fileRow['deletionStatus'] === 1) {
+                http_response_code(409);
+                echo json_encode(['success' => false, 'message' => 'Lampiran pada materi yang telah dihapus tidak dapat diubah.']);
+                exit;
+            }
+
+            $filePath = $fileRow['filePath'];
 
             // Hapus dari Google Drive
             DriveManager::getInstance()->deleteFile($filePath);

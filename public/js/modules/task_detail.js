@@ -222,6 +222,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     let filesHtml = '';
                     files.forEach(f => {
                         const fileUrl = /^https?:\/\//i.test(f.filePath) ? f.filePath : `${BASE_URL}${f.filePath}`;
+                        let downloadUrl = fileUrl;
+                        const driveMatch = f.filePath ? f.filePath.match(/\/d\/([a-zA-Z0-9_-]+)/) : null;
+                        if (driveMatch && driveMatch[1]) {
+                            downloadUrl = `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
+                        }
                         filesHtml += `
                             <div class="list-group-item d-flex justify-content-between align-items-center">
                                 <div class="text-truncate me-3">
@@ -231,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 <div class="btn-group btn-group-sm flex-shrink-0">
                                     <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">Buka</a>
-                                    <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" download="${escapeHtml(f.fileName)}" class="btn btn-primary">Download</a>
+                                    <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" download="${escapeHtml(f.fileName)}" class="btn btn-primary">Download</a>
                                 </div>
                             </div>
                         `;

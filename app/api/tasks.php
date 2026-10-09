@@ -93,7 +93,7 @@ require_once __DIR__ . '/DriveManager.php';
 
 header('Content-Type: application/json');
 
-function saveTaskAttachments(PDO $pdo, int $taskId, int $userId, array $files, ?string &$newlyCreatedFolderId = null): void
+function saveTaskAttachments(PDO $pdo, int $taskId, int $userId, array $files, ?string &$newlyCreatedFolderId = null, array &$newlyUploadedFileIds = []): void
 {
     if (!DriveManager::hasFiles($files)) {
         return;
@@ -125,6 +125,7 @@ function saveTaskAttachments(PDO $pdo, int $taskId, int $userId, array $files, ?
              VALUES (:taskId, :filePath, :fileName, :fileSize, NOW())'
         );
         foreach ($uploadedFiles as $file) {
+            $newlyUploadedFileIds[] = $file['fileId'];
             $stmtFile->execute([
                 'taskId'   => $taskId,
                 'filePath' => $file['filePath'],
@@ -486,6 +487,7 @@ try {
             }
 
             $newlyCreatedFolderId = null;
+            $newlyUploadedFileIds = [];
             $pdo->beginTransaction();
 
             try {
@@ -505,7 +507,7 @@ try {
                 ]);
                 $newTaskId = (int)$pdo->lastInsertId();
 
-                saveTaskAttachments($pdo, $newTaskId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId);
+                saveTaskAttachments($pdo, $newTaskId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId, $newlyUploadedFileIds);
 
                 $pdo->commit();
                 echo json_encode(['success' => true, 'message' => 'Tugas berhasil dibuat. +1 Poin Kontribusi!']);
@@ -518,6 +520,12 @@ try {
                     try {
                         DriveManager::getInstance()->deleteFolder($newlyCreatedFolderId);
                     } catch (Throwable $ignored) {}
+                } elseif (!empty($newlyUploadedFileIds)) {
+                    foreach ($newlyUploadedFileIds as $fileId) {
+                        try {
+                            DriveManager::getInstance()->deleteFile($fileId);
+                        } catch (Throwable $ignored) {}
+                    }
                 }
                 http_response_code(500);
                 echo json_encode(['success' => false, 'message' => 'Gagal membuat tugas: ' . $e->getMessage()]);
@@ -555,6 +563,7 @@ try {
         }
 
         $newlyCreatedFolderId = null;
+        $newlyUploadedFileIds = [];
         $pdo->beginTransaction();
 
         try {
@@ -573,7 +582,7 @@ try {
                 'taskId'   => $taskId
             ]);
 
-            saveTaskAttachments($pdo, $taskId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId);
+            saveTaskAttachments($pdo, $taskId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId, $newlyUploadedFileIds);
 
             $pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Tugas berhasil diperbarui']);
@@ -586,6 +595,12 @@ try {
                 try {
                     DriveManager::getInstance()->deleteFolder($newlyCreatedFolderId);
                 } catch (Throwable $ignored) {}
+            } elseif (!empty($newlyUploadedFileIds)) {
+                foreach ($newlyUploadedFileIds as $fileId) {
+                    try {
+                        DriveManager::getInstance()->deleteFile($fileId);
+                    } catch (Throwable $ignored) {}
+                }
             }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Gagal memperbarui tugas: ' . $e->getMessage()]);
@@ -650,14 +665,26 @@ try {
                 exit;
             }
 
-            $stmtFile = $pdo->prepare('SELECT filePath FROM task_files WHERE fileId = :fileId');
+            $stmtFile = $pdo->prepare('
+                SELECT tf.filePath, t.deletionStatus
+                FROM task_files tf
+                JOIN tasks t ON tf.taskId = t.taskId
+                WHERE tf.fileId = :fileId
+            ');
             $stmtFile->execute(['fileId' => $fileId]);
-            $filePath = $stmtFile->fetchColumn();
-            if ($filePath === false) {
+            $fileRow = $stmtFile->fetch(PDO::FETCH_ASSOC);
+            if (!$fileRow) {
                 http_response_code(404);
                 echo json_encode(['success' => false, 'message' => 'Lampiran tidak ditemukan.']);
                 exit;
             }
+            if ((int)$fileRow['deletionStatus'] === 1) {
+                http_response_code(409);
+                echo json_encode(['success' => false, 'message' => 'Lampiran pada tugas yang telah dihapus tidak dapat diubah.']);
+                exit;
+            }
+
+            $filePath = $fileRow['filePath'];
 
             // Hapus dari Google Drive
             DriveManager::getInstance()->deleteFile($filePath);

@@ -616,6 +616,7 @@ try {
         }
 
         // Cascade Deletion Protocol: Kumpulkan semua child drive_folder_id dari tugas, materi, dan jawaban
+        @set_time_limit(180);
         $driveFolderIds = [];
 
         $stmtTaskFolders = $pdo->prepare("SELECT drive_folder_id FROM tasks WHERE courseId = :id AND drive_folder_id IS NOT NULL");

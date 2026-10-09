@@ -48,6 +48,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         materialFilesContainer.innerHTML = files.map(file => {
             const fileUrl = /^https?:\/\//i.test(file.filePath) ? file.filePath : `${BASE_URL}${encodeURI(file.filePath)}`;
+            let downloadUrl = fileUrl;
+            const driveMatch = file.filePath ? file.filePath.match(/\/d\/([a-zA-Z0-9_-]+)/) : null;
+            if (driveMatch && driveMatch[1]) {
+                downloadUrl = `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
+            }
             return `
             <div class="list-group-item d-flex justify-content-between align-items-center">
                 <div class="text-truncate me-3">
@@ -57,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
                 <div class="btn-group btn-group-sm flex-shrink-0">
                     <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success">Buka</a>
-                    <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" download="${escapeHtml(file.fileName)}" class="btn btn-success">Download</a>
+                    <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" download="${escapeHtml(file.fileName)}" class="btn btn-success">Download</a>
                 </div>
             </div>
         `;
