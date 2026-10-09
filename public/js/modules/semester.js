@@ -1,0 +1,252 @@
+document.addEventListener("DOMContentLoaded", () => {
+    fetchSemesters();
+
+    const form = document.getElementById("formSemester");
+    if (form) {
+        form.addEventListener("submit", handleFormSubmit);
+    }
+});
+
+let canManageSemester = false;
+let semesterModalInstance = null;
+
+async function fetchSemesters() {
+    const grid = document.getElementById("semester-grid");
+    const managerActions = document.getElementById("manager-actions");
+
+    try {
+        const fetchUrl = (typeof BASE_URL !== 'undefined' ? BASE_URL : '') + 'app/api/semesters.php';
+        const response = await fetch(fetchUrl);
+        const res = await response.json();
+
+        if (res.success && res.data) {
+            canManageSemester = res.canManage || false;
+
+            if (canManageSemester && managerActions) {
+                managerActions.classList.remove("d-none");
+            }
+
+            if (res.data.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <i class="bi bi-journal-x fs-1 text-secondary d-block mb-2"></i>
+                        <h6 class="fw-bold text-dark">Belum ada semester yang terdaftar.</h6>
+                        <p class="text-muted small">${canManageSemester ? 'Klik tombol "Tambah Semester" di atas untuk menambahkan semester baru.' : 'Tunggu Sepuh/Primordial menambahkan semester.'}</p>
+                    </div>`;
+                return;
+            }
+
+            grid.innerHTML = "";
+            res.data.forEach(sem => {
+                const isActive = Number(sem.isActive) === 1;
+                const cardGradient = isActive
+                    ? 'linear-gradient(135deg, #1e3a8a, #3b82f6)'
+                    : 'linear-gradient(135deg, #334155, #64748b)';
+                const detailUrl = (typeof BASE_URL !== 'undefined' ? BASE_URL : '') + 'semester/courses?id=' + sem.semesterId;
+                const courseLinkLabel = isActive
+                    ? 'Lihat Mata Kuliah<i class="bi bi-arrow-right ms-1"></i>'
+                    : 'Semester ini tidak aktif.';
+
+                let actionButtons = '';
+                if (canManageSemester) {
+                    actionButtons = `
+                        <div class="position-absolute top-0 end-0 m-3 d-flex gap-1" style="z-index: 100 !important; pointer-events: auto;">
+                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center; position:relative; z-index:101 !important; cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation(); openEditModal(${sem.semesterId}, ${sem.semesterNumber}, '${escapeQuotes(sem.semesterTitle)}', '${sem.backgroundColor}', ${isActive})" title="Edit">
+                                <i class="bi bi-pencil-fill text-dark style-icon" style="font-size:0.75rem;"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-light bg-white border-0 shadow-sm rounded-circle p-1" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center; position:relative; z-index:101 !important; cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation(); deleteSemester(${sem.semesterId})" title="Hapus">
+                                <i class="bi bi-trash-fill text-danger style-icon" style="font-size:0.75rem;"></i>
+                            </button>
+                        </div>`;
+                }
+
+                const activeBadgeMarkup = isActive
+                    ? `<span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3 py-1 mb-2 fw-medium" style="font-size:0.72rem;">Semester Aktif</span>`
+                    : `<span class="badge bg-white bg-opacity-10 text-white-50 rounded-pill px-3 py-1 mb-2 fw-medium" style="font-size:0.72rem;">Semester ${sem.semesterNumber}</span>`;
+
+                grid.innerHTML += `
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="card card-gradient border-0 shadow-sm rounded-4 p-3 p-md-4 text-white position-relative overflow-hidden h-100 semester-card-item" style="--card-bg: ${isActive ? '#1e3a8a' : '#334155'}; background: ${cardGradient} !important; min-height: 160px;">
+                            <!-- Watermark Header Icon -->
+                            <div class="position-absolute end-0 bottom-0 me-3 mb-2 text-white opacity-25 pointer-events-none" style="z-index: 1;">
+                                <i class="bi bi-journal-bookmark-fill display-4"></i>
+                            </div>
+                            
+                            <a href="${detailUrl}" class="text-white text-decoration-none d-flex flex-column justify-content-between h-100 position-relative" style="z-index: 2;">
+                                <div>
+                                    <div class="mb-1">
+                                        ${activeBadgeMarkup}
+                                    </div>
+                                    <h5 class="fw-bold mb-1 text-white fs-5 lh-sm">${escapeQuotes(sem.semesterTitle)}</h5>
+                                    <small class="text-white-50 d-block mb-3">Semester ${sem.semesterNumber}</small>
+                                </div>
+                                <div class="mt-auto text-white-50 small fw-semibold d-flex align-items-center">${courseLinkLabel}</div>
+                            </a>
+                            ${actionButtons}
+                        </div>
+                    </div>`;
+            });
+        } else {
+            showErrorState(res.message);
+        }
+    } catch (err) {
+        console.error("Gagal mengambil data semester:", err);
+        showErrorState("Gagal menghubungkan ke server.");
+    }
+}
+
+function escapeQuotes(str) {
+    if (!str) return '';
+    return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+function showErrorState(msg) {
+    const grid = document.getElementById("semester-grid");
+    if (grid) {
+        grid.innerHTML = `
+            <div class="col-12 text-center py-4 text-danger small">
+                <i class="bi bi-exclamation-triangle fs-3 d-block mb-1"></i>
+                ${msg}
+            </div>`;
+    }
+}
+
+function openAddModal() {
+    document.getElementById("modalSemesterTitle").textContent = "Tambah Semester";
+    document.getElementById("semesterId").value = "";
+    document.getElementById("formMethod").value = "POST";
+    document.getElementById("semesterNumber").value = "";
+    document.getElementById("semesterTitle").value = "";
+    document.getElementById("backgroundColor").value = "#3b82f6";
+    document.getElementById("isActiveSwitch").checked = false;
+}
+
+function openEditModal(id, number, title, bg, isActive) {
+    document.getElementById("modalSemesterTitle").textContent = "Edit Semester";
+    document.getElementById("semesterId").value = id;
+    document.getElementById("formMethod").value = "PUT";
+    document.getElementById("semesterNumber").value = number;
+    document.getElementById("semesterTitle").value = title;
+    document.getElementById("backgroundColor").value = bg || "#3b82f6";
+    document.getElementById("isActiveSwitch").checked = Boolean(isActive);
+
+    const modalEl = document.getElementById("modalSemester");
+    if (modalEl) {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+async function handleFormSubmit(e) {
+    e.preventDefault();
+    const btnSave = document.getElementById("btnSaveSemester");
+    const originalText = btnSave.innerHTML;
+    btnSave.disabled = true;
+    btnSave.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...`;
+
+    const form = e.target;
+    const formData = new FormData(form);
+    const method = formData.get("_method") || "POST";
+    const isActive = document.getElementById("isActiveSwitch")?.checked ? "1" : "0";
+    formData.set("isActive", isActive);
+
+    try {
+        const apiUrl = (typeof BASE_URL !== 'undefined' ? BASE_URL : '') + 'app/api/semesters.php';
+        let response;
+
+        if (method === "PUT") {
+            const bodyObj = {
+                semesterId: formData.get("semesterId"),
+                semesterNumber: formData.get("semesterNumber"),
+                semesterTitle: formData.get("semesterTitle"),
+                backgroundColor: formData.get("backgroundColor"),
+                isActive: isActive
+            };
+
+            response = await fetch(apiUrl, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(bodyObj)
+            });
+        } else {
+            response = await fetch(apiUrl, {
+                method: "POST",
+                body: formData
+            });
+        }
+
+        const res = await response.json();
+        if (res.success) {
+            const modalEl = document.getElementById("modalSemester");
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            fetchSemesters();
+        } else {
+            alert(res.message || "Gagal menyimpan semester.");
+        }
+    } catch (err) {
+        console.error("Error submitting form:", err);
+        alert("Terjadi kesalahan jaringan.");
+    } finally {
+        btnSave.disabled = false;
+        btnSave.innerHTML = originalText;
+    }
+}
+
+let semesterToDelete = null;
+const expectedSemesterPhrase = `Saya ${USER_NAME} mengerti bahwa dengan menghapus semester maka segala mata kuliah serta tugas di dalam semester ini akan ikut terhapus.`;
+
+function deleteSemester(id) {
+    semesterToDelete = id;
+    document.getElementById("confirmDeleteText").value = "";
+    document.getElementById("btnConfirmDelete").disabled = true;
+    const modal = new bootstrap.Modal(document.getElementById("modalDeleteConfirm"));
+    modal.show();
+}
+
+document.getElementById("confirmDeleteText")?.addEventListener("input", function() {
+    const btn = document.getElementById("btnConfirmDelete");
+    if (this.value === expectedSemesterPhrase) {
+        btn.disabled = false;
+    } else {
+        btn.disabled = true;
+    }
+});
+
+document.getElementById("btnConfirmDelete")?.addEventListener("click", async function() {
+    if (!semesterToDelete) return;
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+
+    try {
+        const confirmationInput = document.getElementById("confirmDeleteText");
+        const confirmationText = confirmationInput ? confirmationInput.value.trim() : "";
+        const apiUrl = (typeof BASE_URL !== 'undefined' ? BASE_URL : '') + 'app/api/semesters.php';
+        const response = await fetch(apiUrl, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                semesterId: semesterToDelete,
+                confirmationText: confirmationText
+            })
+        });
+        const res = await response.json();
+        if (res.success) {
+            const modalEl = document.getElementById("modalDeleteConfirm");
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            fetchSemesters();
+        } else {
+            alert(res.message || "Gagal menghapus semester.");
+        }
+    } catch (err) {
+        alert("Terjadi kesalahan jaringan.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        semesterToDelete = null;
+    }
+});

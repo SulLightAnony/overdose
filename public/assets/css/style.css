@@ -1,0 +1,585 @@
+/* ==========================================================================
+   GLOBAL CONFIGURATION, FONTS, & SCROLLBAR
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+    --sidebar-bg: #1e293b;
+    --sidebar-hover: #334155;
+    --sidebar-text: #f8fafc;
+    --sidebar-text-muted: #94a3b8;
+}
+
+html, body {
+    background-color: #f8fafc;
+    max-width: 100vw;
+    height: 100vh;
+    overflow: hidden !important; 
+    display: flex;
+    flex-direction: column;
+}
+
+#wrapper {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-grow: 1;
+}
+
+/* Custom Scrollbar Modern */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Smooth Skeleton Animation */
+.placeholder {
+    opacity: 0.25;
+}
+
+
+/* ==========================================================================
+   1. LOGIN PAGE (login.php)
+   ========================================================================== */
+body.login-body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #ffffff;
+    color: #0f172a;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 1rem;
+    overflow: hidden;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.login-container .wave-svg {
+    width: 100vw;
+    position: absolute;
+    bottom: 0px;
+}
+
+.brand-logo {
+    max-height: 200px;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 2.25rem;
+}
+
+.btn-google {
+    position: relative;
+    background: #ffffff;
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.9rem 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    z-index: 1;
+}
+
+.btn-google::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 14px;
+    padding: 2.5px;
+    background: linear-gradient(
+        90deg, 
+        #34a853 0%, 
+        #fbbc05 25%, 
+        #ea4335 50%, 
+        #4285f4 75%, 
+        #34a853 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    clip-path: inset(50% 50% 50% 50% round 14px);
+    transition: clip-path 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+}
+
+.btn-google:hover {
+    background-color: #f8fafc;
+    transform: translateY(-1px);
+}
+
+.btn-google:hover::before {
+    opacity: 1;
+    clip-path: inset(0% 0% 0% 0% round 14px);
+}
+
+.google-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.sanctuary-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    letter-spacing: 0.08em;
+    margin-top: 1.75rem;
+    margin-bottom: 0;
+}
+
+.creator-footer {
+    margin-top: 2.5rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.alert-custom-danger {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    width: 100%;
+    margin-bottom: 1.25rem;
+}
+
+
+/* ==========================================================================
+   2. SETTINGS & ONBOARDING PAGE (settings.php)
+   ========================================================================== */
+.onboarding-header {
+    flex-shrink: 0;
+}
+
+.onboarding-body {
+    width: 100%;
+    min-height: 165px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.step-container {
+    display: none;
+    animation: fadeIn 0.35s ease-in-out;
+    width: 100%;
+    min-height: 165px;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.step-container.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-select-custom {
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.form-select-custom:focus {
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 0.25rem rgba(148, 163, 184, 0.25);
+}
+
+.onboarding-footer {
+    flex-shrink: 0;
+}
+
+
+/* ==========================================================================
+   3. MAIN LAYOUT & NAVIGATION (layout.php)
+   ========================================================================== */
+.app-wrapper {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+}
+
+.app-sidebar {
+    width: 260px;
+    background-color: var(--sidebar-bg) !important;
+    color: var(--sidebar-text);
+    flex-shrink: 0;
+    transition: all 0.3s ease-in-out;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-brand-logo {
+    max-height: 75px;
+    width: auto;
+    object-fit: contain;
+}
+
+.app-sidebar .nav-link {
+    color: var(--sidebar-text-muted);
+    font-weight: 500;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+}
+
+.app-sidebar .nav-link:hover,
+.app-sidebar .nav-link.active {
+    color: var(--sidebar-text);
+    background-color: var(--sidebar-hover);
+}
+
+.app-sidebar .nav-link i {
+    font-size: 1.2rem;
+}
+
+.sidebar-nav-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.app-main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: 100vh; /* Memastikan batas scroll tetap berada di dalam app-main */
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.app-topbar {
+    height: 65px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    flex-shrink: 0;
+}
+
+/* Penataan Logo Title agar berada persis di Tengah Topbar */
+.app-topbar img[src*="logo_title.png"],
+.topbar-brand-logo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    max-height: 38px;
+    object-fit: contain;
+}
+
+.btn-nav-icon {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #475569;
+    transition: background-color 0.2s ease;
+}
+
+.btn-nav-icon:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+
+.red-dot-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 9px;
+    height: 9px;
+    background-color: #ef4444;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+}
+
+.user-avatar-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+}
+
+#app-content {
+    flex-grow: 1;
+    padding: 1.5rem;
+    overflow-x: hidden;
+}
+
+
+/* ==========================================================================
+   4. DASHBOARD MODULE (dashboard.php)
+   ========================================================================== */
+.stat-card {
+    border-radius: 16px;
+    padding: 1.25rem 1rem;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-success {
+    background-color: #10b981;
+}
+
+.stat-card-warning {
+    background-color: #f59e0b;
+}
+
+.stat-card-danger {
+    background-color: #ef4444;
+}
+
+.stat-card-body {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.stat-icon-wrapper {
+    font-size: 1.8rem;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.stat-info {
+    min-width: 0;
+}
+
+.stat-number {
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.transition-all {
+    transition: all 0.2s ease;
+}
+
+.hover-shadow:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+
+/* ==========================================================================
+   5. MODUL SEMESTER & MATA KULIAH (GRADIENT CARD & HOVER)
+   ========================================================================== */
+.card-gradient {
+    background-color: var(--card-bg, #3b82f6);
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.25) 100%);
+    border: none;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Pseudo-element untuk sapuan cahaya (shine) */
+.card-gradient::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%);
+    transform: skewX(-25deg);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.card-gradient:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Animasi cahaya saat di-hover */
+.card-gradient:hover::after {
+    animation: shine-effect 0.6s ease-in-out forwards;
+}
+
+@keyframes shine-effect {
+    0% { left: -150%; }
+    100% { left: 200%; }
+}
+
+.style-icon { 
+    transition: transform 0.2s ease; 
+}
+
+.style-icon:hover { 
+    transform: scale(1.15); 
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.hover-white:hover { 
+    color: #ffffff !important; 
+    opacity: 1 !important; 
+}
+
+/* Pastikan teks di dalam card tetap di atas efek shine */
+.card-gradient > * { 
+    position: relative; 
+    z-index: 2; 
+}
+
+
+/* ==========================================================================
+   RESPONSIVE MEDIA QUERIES (PERBAIKAN HP & TABLET)
+   ========================================================================== */
+@media (max-width: 576px) {
+    #app-content {
+        padding: 1rem 0.75rem;
+    }
+
+    .stat-card {
+        padding: 0.85rem 0.6rem;
+        border-radius: 12px;
+    }
+
+    .stat-card-body {
+        gap: 0.4rem;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .stat-icon-wrapper {
+        font-size: 1.3rem;
+    }
+
+    .stat-number {
+        font-size: 1.1rem;
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+    }
+}
+
+@media (min-width: 750px) {
+    .wave-svg {
+        transform: translateY(50px);
+    }
+}
+
+@media (min-width: 992px) {
+    .app-sidebar.offcanvas-lg {
+        position: static !important;
+        transform: none !important;
+        visibility: visible !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+    }
+}
+
+@media (min-width: 1000px) {
+    .wave-svg {
+        transform: translateY(100px);
+    }
+}
+
+@media (min-width: 1250px) {
+    .wave-svg {
+        transform: translateY(150px);
+    }
+}

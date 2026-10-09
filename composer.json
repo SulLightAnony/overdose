@@ -1,0 +1,11 @@
+{
+    "require": {
+        "minishlink/web-push": "^11.0",
+        "google/apiclient": "^2.20"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
+}
