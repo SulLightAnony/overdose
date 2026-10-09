@@ -11,6 +11,7 @@ init_secure_session();
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/DriveManager.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -612,6 +613,43 @@ try {
             http_response_code(404);
             echo json_encode(['success' => false, 'message' => 'Mata kuliah tidak ditemukan atau Anda tidak memiliki akses.']);
             exit;
+        }
+
+        // Cascade Deletion Protocol: Kumpulkan semua child drive_folder_id dari tugas, materi, dan jawaban
+        $driveFolderIds = [];
+
+        $stmtTaskFolders = $pdo->prepare("SELECT drive_folder_id FROM tasks WHERE courseId = :id AND drive_folder_id IS NOT NULL");
+        $stmtTaskFolders->execute(['id' => $courseId]);
+        foreach ($stmtTaskFolders->fetchAll(PDO::FETCH_COLUMN) as $fId) {
+            if (!empty($fId)) {
+                $driveFolderIds[] = $fId;
+            }
+        }
+
+        $stmtMatFolders = $pdo->prepare("SELECT drive_folder_id FROM learning_material WHERE courseId = :id AND drive_folder_id IS NOT NULL");
+        $stmtMatFolders->execute(['id' => $courseId]);
+        foreach ($stmtMatFolders->fetchAll(PDO::FETCH_COLUMN) as $fId) {
+            if (!empty($fId)) {
+                $driveFolderIds[] = $fId;
+            }
+        }
+
+        $stmtAnsFolders = $pdo->prepare("
+            SELECT tsa.drive_folder_id 
+            FROM task_shared_answers tsa 
+            JOIN tasks t ON tsa.taskId = t.taskId 
+            WHERE t.courseId = :id AND tsa.drive_folder_id IS NOT NULL
+        ");
+        $stmtAnsFolders->execute(['id' => $courseId]);
+        foreach ($stmtAnsFolders->fetchAll(PDO::FETCH_COLUMN) as $fId) {
+            if (!empty($fId)) {
+                $driveFolderIds[] = $fId;
+            }
+        }
+
+        // Hapus permanen seluruh folder di Google Drive sebelum eksekusi database
+        if (!empty($driveFolderIds)) {
+            DriveManager::getInstance()->deleteFolders($driveFolderIds);
         }
 
         $pdo->beginTransaction();

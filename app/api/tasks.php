@@ -89,88 +89,49 @@ init_secure_session();
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/DriveManager.php';
 
 header('Content-Type: application/json');
 
-function saveTaskAttachments(PDO $pdo, int $taskId, array $files, string $uploadDir): void
+function saveTaskAttachments(PDO $pdo, int $taskId, int $userId, array $files, ?string &$newlyCreatedFolderId = null): void
 {
-    if (!isset($files['name']) || !is_array($files['name'])) {
+    if (!DriveManager::hasFiles($files)) {
         return;
     }
 
-    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
-        throw new RuntimeException('Direktori upload tidak dapat dibuat');
+    $driveManager = DriveManager::getInstance();
+
+    // Ambil drive_folder_id yang sudah ada (jika ada)
+    $stmtFolder = $pdo->prepare('SELECT drive_folder_id FROM tasks WHERE taskId = :taskId');
+    $stmtFolder->execute(['taskId' => $taskId]);
+    $existingFolderId = $stmtFolder->fetchColumn() ?: null;
+
+    $folderId = $driveManager->resolveEntityFolder('Tasks', $existingFolderId, $userId, $taskId);
+
+    if (empty($existingFolderId)) {
+        $newlyCreatedFolderId = $folderId;
+        $stmtUpdateFolder = $pdo->prepare('UPDATE tasks SET drive_folder_id = :folderId WHERE taskId = :taskId');
+        $stmtUpdateFolder->execute([
+            'folderId' => $folderId,
+            'taskId'   => $taskId
+        ]);
     }
 
-    $allowedMimeTypes = [
-        'pdf'  => 'application/pdf',
-        'doc'  => 'application/msword',
-        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'xls'  => 'application/vnd.ms-excel',
-        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'ppt'  => 'application/vnd.ms-powerpoint',
-        'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'txt'  => 'text/plain',
-        'jpg'  => 'image/jpeg',
-        'jpeg' => 'image/jpeg',
-        'png'  => 'image/png',
-        'zip'  => 'application/zip'
-    ];
-    $maxFileSize = 10 * 1024 * 1024;
-    $uploadedPaths = [];
-    $fileInfo = finfo_open(FILEINFO_MIME_TYPE);
+    $uploadedFiles = $driveManager->uploadFiles($folderId, $files);
 
-    if ($fileInfo === false) {
-        throw new RuntimeException('Pemeriksaan tipe file tidak tersedia');
-    }
-
-    try {
-        foreach ($files['name'] as $index => $originalName) {
-            $error = (int)($files['error'][$index] ?? UPLOAD_ERR_NO_FILE);
-            if ($error === UPLOAD_ERR_NO_FILE) {
-                continue;
-            }
-            if ($error !== UPLOAD_ERR_OK) {
-                throw new RuntimeException('Pengunggahan file gagal');
-            }
-
-            $tmpName = $files['tmp_name'][$index] ?? '';
-            $fileSize = (int)($files['size'][$index] ?? 0);
-            $extension = strtolower(pathinfo((string)$originalName, PATHINFO_EXTENSION));
-            $mimeType = finfo_file($fileInfo, $tmpName);
-
-            if (!is_uploaded_file($tmpName) || $fileSize <= 0 || $fileSize > $maxFileSize ||
-                !isset($allowedMimeTypes[$extension]) || $mimeType !== $allowedMimeTypes[$extension]) {
-                throw new RuntimeException('Tipe atau ukuran file tidak diperbolehkan');
-            }
-
-            $safeName = bin2hex(random_bytes(16)) . '.' . $extension;
-            $destination = $uploadDir . $safeName;
-            if (!move_uploaded_file($tmpName, $destination)) {
-                throw new RuntimeException('File tidak dapat disimpan');
-            }
-            $uploadedPaths[] = $destination;
-
-            $stmtFile = $pdo->prepare(
-                'INSERT INTO task_files (taskId, filePath, fileName, fileSize, uploadedAt)
-                 VALUES (:taskId, :filePath, :fileName, :fileSize, NOW())'
-            );
+    if (!empty($uploadedFiles)) {
+        $stmtFile = $pdo->prepare(
+            'INSERT INTO task_files (taskId, filePath, fileName, fileSize, uploadedAt)
+             VALUES (:taskId, :filePath, :fileName, :fileSize, NOW())'
+        );
+        foreach ($uploadedFiles as $file) {
             $stmtFile->execute([
-                'taskId' => $taskId,
-                'filePath' => 'public/uploads/tasks/' . $safeName,
-                'fileName' => basename((string)$originalName),
-                'fileSize' => $fileSize
+                'taskId'   => $taskId,
+                'filePath' => $file['filePath'],
+                'fileName' => $file['fileName'],
+                'fileSize' => $file['fileSize']
             ]);
         }
-    } catch (Throwable $exception) {
-        foreach ($uploadedPaths as $uploadedPath) {
-            if (is_file($uploadedPath)) {
-                unlink($uploadedPath);
-            }
-        }
-        throw $exception;
-    } finally {
-        finfo_close($fileInfo);
     }
 }
 
@@ -524,33 +485,44 @@ try {
                 exit;
             }
 
-            $uploadDir = __DIR__ . '/../../public/uploads/tasks/';
+            $newlyCreatedFolderId = null;
             $pdo->beginTransaction();
 
-            // Insert Task Record
-            $stmtTask =$pdo->prepare("
-                INSERT INTO tasks (courseId, semesterId, taskType, taskTitle, taskDescription, dueDate, createdByUserId, createdAt, updatedAt)
-                VALUES (:courseId, :semesterId, :taskType, :title, :desc, :due, :creator, NOW(), NOW())
-            ");
-            $stmtTask->execute([
-                'courseId'   => $courseId,
-                'semesterId' => $semesterId,
-                'taskType'   => $taskType,
-                'title'      => $taskTitle,
-                'desc'       => $taskDescription,
-                'due'        => $dueDate,
-                'creator'    => $userId
-            ]);
-            $newTaskId =$pdo->lastInsertId();
+            try {
+                // Insert Task Record
+                $stmtTask = $pdo->prepare("
+                    INSERT INTO tasks (courseId, semesterId, taskType, taskTitle, taskDescription, dueDate, createdByUserId, createdAt, updatedAt)
+                    VALUES (:courseId, :semesterId, :taskType, :title, :desc, :due, :creator, NOW(), NOW())
+                ");
+                $stmtTask->execute([
+                    'courseId'   => $courseId,
+                    'semesterId' => $semesterId,
+                    'taskType'   => $taskType,
+                    'title'      => $taskTitle,
+                    'desc'       => $taskDescription,
+                    'due'        => $dueDate,
+                    'creator'    => $userId
+                ]);
+                $newTaskId = (int)$pdo->lastInsertId();
 
-            saveTaskAttachments($pdo, (int)$newTaskId, $_FILES['attachments'] ?? [], __DIR__ . '/../../public/uploads/tasks/');
+                saveTaskAttachments($pdo, $newTaskId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId);
 
-            // Poin kontribusi secara otomatis akan terhitung di dashboard berdasarkan COUNT(taskId) di tabel tasks.
-            // Tidak perlu ada update table `users` karena tidak ada field `points`.
-
-            $pdo->commit();
-            echo json_encode(['success' => true, 'message' => 'Tugas berhasil dibuat. +1 Poin Kontribusi!']);
-            exit;
+                $pdo->commit();
+                echo json_encode(['success' => true, 'message' => 'Tugas berhasil dibuat. +1 Poin Kontribusi!']);
+                exit;
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                if ($newlyCreatedFolderId !== null) {
+                    try {
+                        DriveManager::getInstance()->deleteFolder($newlyCreatedFolderId);
+                    } catch (Throwable $ignored) {}
+                }
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Gagal membuat tugas: ' . $e->getMessage()]);
+                exit;
+            }
         }
     }
 
@@ -582,35 +554,51 @@ try {
             exit;
         }
 
+        $newlyCreatedFolderId = null;
         $pdo->beginTransaction();
 
-        $stmtUpdate =$pdo->prepare("
-            UPDATE tasks
-            SET taskType = :taskType, taskTitle = :title, taskDescription = :desc, dueDate = :due,
-                lastEditedByUserId = :editor, updatedAt = NOW()
-            WHERE taskId = :taskId AND deletionStatus = 0
-        ");
-        $stmtUpdate->execute([
-            'taskType' => $taskType,
-            'title'    => $taskTitle,
-            'desc'     => $taskDescription,
-            'due'      => $dueDate,
-            'editor'   => $userId,
-            'taskId'   => $taskId
-        ]);
+        try {
+            $stmtUpdate = $pdo->prepare("
+                UPDATE tasks
+                SET taskType = :taskType, taskTitle = :title, taskDescription = :desc, dueDate = :due,
+                    lastEditedByUserId = :editor, updatedAt = NOW()
+                WHERE taskId = :taskId AND deletionStatus = 0
+            ");
+            $stmtUpdate->execute([
+                'taskType' => $taskType,
+                'title'    => $taskTitle,
+                'desc'     => $taskDescription,
+                'due'      => $dueDate,
+                'editor'   => $userId,
+                'taskId'   => $taskId
+            ]);
 
-        saveTaskAttachments($pdo, $taskId, $_FILES['attachments'] ?? [], __DIR__ . '/../../public/uploads/tasks/');
+            saveTaskAttachments($pdo, $taskId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId);
 
-        $pdo->commit();
-        echo json_encode(['success' => true, 'message' => 'Tugas berhasil diperbarui']);
-        exit;
+            $pdo->commit();
+            echo json_encode(['success' => true, 'message' => 'Tugas berhasil diperbarui']);
+            exit;
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            if ($newlyCreatedFolderId !== null) {
+                try {
+                    DriveManager::getInstance()->deleteFolder($newlyCreatedFolderId);
+                } catch (Throwable $ignored) {}
+            }
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Gagal memperbarui tugas: ' . $e->getMessage()]);
+            exit;
+        }
     }
 
     // ====================================================================================
-    // DELETE REQUESTS (SOFT DELETE TASK)
+    // DELETE REQUESTS (SOFT DELETE & HARD DELETE TASK)
     // ====================================================================================
     if ($method === 'DELETE') {
-        $rawInput = file_get_contents('php://input');$data = json_decode($rawInput, true) ?:$_POST;
+        $rawInput = file_get_contents('php://input');
+        $data = json_decode($rawInput, true) ?: $_POST;
 
         if (($data['action'] ?? '') === 'hard_delete') {
             $taskId = (int)($data['taskId'] ?? 0);
@@ -622,27 +610,31 @@ try {
                 exit;
             }
 
-            $stmtTask = $pdo->prepare('SELECT deletionStatus FROM tasks WHERE taskId = :taskId');
+            $stmtTask = $pdo->prepare('SELECT drive_folder_id, deletionStatus FROM tasks WHERE taskId = :taskId');
             $stmtTask->execute(['taskId' => $taskId]);
-            $taskStatus = $stmtTask->fetchColumn();
-            if ($taskStatus === false || (int)$taskStatus !== 1) {
+            $taskRow = $stmtTask->fetch(PDO::FETCH_ASSOC);
+            if (!$taskRow || (int)$taskRow['deletionStatus'] !== 1) {
                 http_response_code(409);
                 echo json_encode(['success' => false, 'message' => 'Hanya tugas yang sudah dihapus sementara dapat dihapus permanen.']);
                 exit;
             }
 
-            $stmtHardFiles = $pdo->prepare('SELECT filePath FROM task_files WHERE taskId = :taskId');
-            $stmtHardFiles->execute(['taskId' => $taskId]);
-            foreach ($stmtHardFiles->fetchAll(PDO::FETCH_COLUMN) as $filePath) {
-                $fullPath = realpath(__DIR__ . '/../../' . $filePath);
-                $uploadRoot = realpath(__DIR__ . '/../../public/uploads/tasks');
-                if ($fullPath && $uploadRoot && str_starts_with($fullPath, $uploadRoot . DIRECTORY_SEPARATOR)
-                    && file_exists($fullPath) && !unlink($fullPath)) {
-                    http_response_code(500);
-                    echo json_encode(['success' => false, 'message' => 'Lampiran gagal dihapus. Tugas belum dihapus permanen.']);
-                    exit;
+            // Cascade Deletion Protocol: Kumpulkan semua child drive_folder_id
+            $driveFolderIds = [];
+            if (!empty($taskRow['drive_folder_id'])) {
+                $driveFolderIds[] = $taskRow['drive_folder_id'];
+            }
+
+            $stmtAnsFolders = $pdo->prepare('SELECT drive_folder_id FROM task_shared_answers WHERE taskId = :taskId AND drive_folder_id IS NOT NULL');
+            $stmtAnsFolders->execute(['taskId' => $taskId]);
+            foreach ($stmtAnsFolders->fetchAll(PDO::FETCH_COLUMN) as $ansFolderId) {
+                if (!empty($ansFolderId)) {
+                    $driveFolderIds[] = $ansFolderId;
                 }
             }
+
+            // Hapus folder Drive secara permanen
+            DriveManager::getInstance()->deleteFolders($driveFolderIds);
 
             $stmtHardDelete = $pdo->prepare('DELETE FROM tasks WHERE taskId = :taskId AND deletionStatus = 1');
             $stmtHardDelete->execute(['taskId' => $taskId]);
@@ -667,13 +659,16 @@ try {
                 exit;
             }
 
-            $fullPath = realpath(__DIR__ . '/../../' . $filePath);
-            $uploadRoot = realpath(__DIR__ . '/../../public/uploads/tasks');
-            if ($fullPath && $uploadRoot && str_starts_with($fullPath, $uploadRoot . DIRECTORY_SEPARATOR)
-                && file_exists($fullPath) && !unlink($fullPath)) {
-                http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Lampiran gagal dihapus dari penyimpanan.']);
-                exit;
+            // Hapus dari Google Drive
+            DriveManager::getInstance()->deleteFile($filePath);
+
+            // Bersihkan jika berkas merupakan file lokal legacy
+            if (!filter_var($filePath, FILTER_VALIDATE_URL)) {
+                $fullPath = realpath(__DIR__ . '/../../' . $filePath);
+                $uploadRoot = realpath(__DIR__ . '/../../public/uploads/tasks');
+                if ($fullPath && $uploadRoot && str_starts_with($fullPath, $uploadRoot . DIRECTORY_SEPARATOR) && file_exists($fullPath)) {
+                    @unlink($fullPath);
+                }
             }
 
             $stmtDeleteFile = $pdo->prepare('DELETE FROM task_files WHERE fileId = :fileId');
@@ -691,37 +686,37 @@ try {
 
         $pdo->beginTransaction();
 
-        $stmtTask = $pdo->prepare("SELECT deletionStatus FROM tasks WHERE taskId = :taskId FOR UPDATE");
+        $stmtTask = $pdo->prepare("SELECT drive_folder_id, deletionStatus FROM tasks WHERE taskId = :taskId FOR UPDATE");
         $stmtTask->execute(['taskId' => $taskId]);
-        $taskState = $stmtTask->fetchColumn();
-        if ($taskState === false) {
+        $taskRow = $stmtTask->fetch(PDO::FETCH_ASSOC);
+        if (!$taskRow) {
             $pdo->rollBack();
             echo json_encode(['success' => false, 'message' => 'Tugas tidak ditemukan']);
             exit;
         }
-        if ((int)$taskState === 1) {
+        if ((int)$taskRow['deletionStatus'] === 1) {
             $pdo->rollBack();
             echo json_encode(['success' => false, 'message' => 'Tugas sudah dihapus']);
             exit;
         }
 
-        $stmtFiles =$pdo->prepare("SELECT filePath FROM task_files WHERE taskId = :taskId");
-        $stmtFiles->execute(['taskId' =>$taskId]);
-        $files =$stmtFiles->fetchAll(PDO::FETCH_ASSOC);
+        // Cascade Deletion Protocol: Kumpulkan child drive_folder_id sebelum soft-delete
+        $driveFolderIds = [];
+        if (!empty($taskRow['drive_folder_id'])) {
+            $driveFolderIds[] = $taskRow['drive_folder_id'];
+        }
 
-        foreach ($files as $file) {
-            $fullPath = realpath(__DIR__ . '/../../' . $file['filePath']);
-            $uploadRoot = realpath(__DIR__ . '/../../public/uploads/tasks');
-            if ($fullPath && $uploadRoot && str_starts_with($fullPath, $uploadRoot . DIRECTORY_SEPARATOR)
-                && file_exists($fullPath) && !unlink($fullPath)) {
-                $pdo->rollBack();
-                http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Lampiran gagal dihapus; tugas tidak diubah.']);
-                exit;
+        $stmtAnsFolders = $pdo->prepare('SELECT drive_folder_id FROM task_shared_answers WHERE taskId = :taskId AND drive_folder_id IS NOT NULL');
+        $stmtAnsFolders->execute(['taskId' => $taskId]);
+        foreach ($stmtAnsFolders->fetchAll(PDO::FETCH_COLUMN) as $ansFolderId) {
+            if (!empty($ansFolderId)) {
+                $driveFolderIds[] = $ansFolderId;
             }
         }
 
-        $stmtDelTask =$pdo->prepare(
+        DriveManager::getInstance()->deleteFolders($driveFolderIds);
+
+        $stmtDelTask = $pdo->prepare(
             "UPDATE tasks
              SET deletionStatus = 1, deletedByUserId = :userId, deletedAt = NOW(), updatedAt = NOW()
              WHERE taskId = :taskId AND deletionStatus = 0"

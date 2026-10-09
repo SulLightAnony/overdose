@@ -221,6 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (files && files.length > 0) {
                     let filesHtml = '';
                     files.forEach(f => {
+                        const fileUrl = /^https?:\/\//i.test(f.filePath) ? f.filePath : `${BASE_URL}${f.filePath}`;
                         filesHtml += `
                             <div class="list-group-item d-flex justify-content-between align-items-center">
                                 <div class="text-truncate me-3">
@@ -229,8 +230,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <small class="text-muted ms-2 d-none d-md-inline">(${(f.fileSize / 1024).toFixed(2)} KB)</small>
                                 </div>
                                 <div class="btn-group btn-group-sm flex-shrink-0">
-                                    <a href="${BASE_URL}${f.filePath}" target="_blank" class="btn btn-outline-primary">Buka</a>
-                                    <a href="${BASE_URL}${f.filePath}" download="${escapeHtml(f.fileName)}" class="btn btn-primary">Download</a>
+                                    <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">Buka</a>
+                                    <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" download="${escapeHtml(f.fileName)}" class="btn btn-primary">Download</a>
                                 </div>
                             </div>
                         `;

@@ -46,7 +46,9 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        materialFilesContainer.innerHTML = files.map(file => `
+        materialFilesContainer.innerHTML = files.map(file => {
+            const fileUrl = /^https?:\/\//i.test(file.filePath) ? file.filePath : `${BASE_URL}${encodeURI(file.filePath)}`;
+            return `
             <div class="list-group-item d-flex justify-content-between align-items-center">
                 <div class="text-truncate me-3">
                     <i class="bi bi-file-earmark-text me-2 text-success"></i>
@@ -54,11 +56,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     <small class="text-muted ms-2 d-none d-md-inline">(${(Number(file.fileSize || 0) / 1024).toFixed(2)} KB)</small>
                 </div>
                 <div class="btn-group btn-group-sm flex-shrink-0">
-                    <a href="${BASE_URL}${encodeURI(file.filePath)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success">Buka</a>
-                    <a href="${BASE_URL}${encodeURI(file.filePath)}" download="${escapeHtml(file.fileName)}" class="btn btn-success">Download</a>
+                    <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success">Buka</a>
+                    <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" download="${escapeHtml(file.fileName)}" class="btn btn-success">Download</a>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     function resolveAssetUrl(path) {

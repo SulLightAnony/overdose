@@ -62,81 +62,49 @@ init_secure_session();
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/DriveManager.php';
 
 header('Content-Type: application/json');
 
-function saveAnswerAttachments(PDO $pdo, int $answerId, array $files, string $uploadDir): void
+function saveAnswerAttachments(PDO $pdo, int $answerId, int $userId, array $files, ?string &$newlyCreatedFolderId = null): void
 {
-    if (!isset($files['name']) || !is_array($files['name'])) {
+    if (!DriveManager::hasFiles($files)) {
         return;
     }
 
-    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
-        throw new RuntimeException('Direktori upload tidak dapat dibuat');
+    $driveManager = DriveManager::getInstance();
+
+    // Ambil drive_folder_id yang sudah ada (jika ada)
+    $stmtFolder = $pdo->prepare('SELECT drive_folder_id FROM task_shared_answers WHERE answerId = :answerId');
+    $stmtFolder->execute(['answerId' => $answerId]);
+    $existingFolderId = $stmtFolder->fetchColumn() ?: null;
+
+    $folderId = $driveManager->resolveEntityFolder('Answers', $existingFolderId, $userId, $answerId);
+
+    if (empty($existingFolderId)) {
+        $newlyCreatedFolderId = $folderId;
+        $stmtUpdateFolder = $pdo->prepare('UPDATE task_shared_answers SET drive_folder_id = :folderId WHERE answerId = :answerId');
+        $stmtUpdateFolder->execute([
+            'folderId' => $folderId,
+            'answerId' => $answerId
+        ]);
     }
 
-    $allowedMimeTypes = [
-        'pdf' => 'application/pdf', 'doc' => 'application/msword',
-        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'xls' => 'application/vnd.ms-excel',
-        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'ppt' => 'application/vnd.ms-powerpoint',
-        'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'txt' => 'text/plain', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg',
-        'png' => 'image/png', 'zip' => 'application/zip'
-    ];
-    $uploadedPaths = [];
-    $fileInfo = finfo_open(FILEINFO_MIME_TYPE);
-    if ($fileInfo === false) {
-        throw new RuntimeException('Pemeriksaan tipe file tidak tersedia');
-    }
+    $uploadedFiles = $driveManager->uploadFiles($folderId, $files);
 
-    try {
-        foreach ($files['name'] as $index => $originalName) {
-            $error = (int)($files['error'][$index] ?? UPLOAD_ERR_NO_FILE);
-            if ($error === UPLOAD_ERR_NO_FILE) {
-                continue;
-            }
-            if ($error !== UPLOAD_ERR_OK) {
-                throw new RuntimeException('Pengunggahan file gagal');
-            }
-
-            $tmpName = $files['tmp_name'][$index] ?? '';
-            $fileSize = (int)($files['size'][$index] ?? 0);
-            $extension = strtolower(pathinfo((string)$originalName, PATHINFO_EXTENSION));
-            $mimeType = finfo_file($fileInfo, $tmpName);
-            if (!is_uploaded_file($tmpName) || $fileSize <= 0 || $fileSize > 10 * 1024 * 1024 ||
-                !isset($allowedMimeTypes[$extension]) || $mimeType !== $allowedMimeTypes[$extension]) {
-                throw new RuntimeException('Tipe atau ukuran file tidak diperbolehkan');
-            }
-
-            $safeName = bin2hex(random_bytes(16)) . '.' . $extension;
-            $destination = $uploadDir . $safeName;
-            if (!move_uploaded_file($tmpName, $destination)) {
-                throw new RuntimeException('File tidak dapat disimpan');
-            }
-            $uploadedPaths[] = $destination;
-
-            $stmtFile = $pdo->prepare(
-                'INSERT INTO task_shared_answer_files (answerId, filePath, fileName, fileSize, uploadedAt)
-                 VALUES (:answerId, :filePath, :fileName, :fileSize, NOW())'
-            );
+    if (!empty($uploadedFiles)) {
+        $stmtFile = $pdo->prepare(
+            'INSERT INTO task_shared_answer_files (answerId, filePath, fileName, fileSize, uploadedAt)
+             VALUES (:answerId, :filePath, :fileName, :fileSize, NOW())'
+        );
+        foreach ($uploadedFiles as $file) {
             $stmtFile->execute([
                 'answerId' => $answerId,
-                'filePath' => 'public/uploads/answers/' . $safeName,
-                'fileName' => basename((string)$originalName),
-                'fileSize' => $fileSize
+                'filePath' => $file['filePath'],
+                'fileName' => $file['fileName'],
+                'fileSize' => $file['fileSize']
             ]);
         }
-    } catch (Throwable $exception) {
-        foreach ($uploadedPaths as $uploadedPath) {
-            if (is_file($uploadedPath)) {
-                unlink($uploadedPath);
-            }
-        }
-        throw $exception;
-    } finally {
-        finfo_close($fileInfo);
     }
 }
 
@@ -310,26 +278,41 @@ try {
                 exit;
             }
 
+            $newlyCreatedFolderId = null;
             $pdo->beginTransaction();
 
-            // Insert Row Jawaban Baru
-            $stmtAns =$pdo->prepare("
-                INSERT INTO task_shared_answers (taskId, userId, answerTitle, answerNotes, createdAt, updatedAt) 
-                VALUES (:taskId, :userId, :title, :notes, NOW(), NOW())
-            ");
-            $stmtAns->execute([
-                'taskId' => $taskId,
-                'userId' => $userId,
-                'title'  => $answerTitle,
-                'notes'  => $answerNotes
-            ]);
-            $newAnswerId =$pdo->lastInsertId();
+            try {
+                // Insert Row Jawaban Baru
+                $stmtAns = $pdo->prepare("
+                    INSERT INTO task_shared_answers (taskId, userId, answerTitle, answerNotes, createdAt, updatedAt) 
+                    VALUES (:taskId, :userId, :title, :notes, NOW(), NOW())
+                ");
+                $stmtAns->execute([
+                    'taskId' => $taskId,
+                    'userId' => $userId,
+                    'title'  => $answerTitle,
+                    'notes'  => $answerNotes
+                ]);
+                $newAnswerId = (int)$pdo->lastInsertId();
 
-            saveAnswerAttachments($pdo, (int)$newAnswerId, $_FILES['attachments'] ?? [], __DIR__ . '/../../public/uploads/answers/');
-            
-            $pdo->commit();
-            echo json_encode(['success' => true, 'message' => 'Jawaban berhasil dibagikan. +1 Poin Kontribusi!']);
-            exit;
+                saveAnswerAttachments($pdo, $newAnswerId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId);
+
+                $pdo->commit();
+                echo json_encode(['success' => true, 'message' => 'Jawaban berhasil dibagikan. +1 Poin Kontribusi!']);
+                exit;
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                if ($newlyCreatedFolderId !== null) {
+                    try {
+                        DriveManager::getInstance()->deleteFolder($newlyCreatedFolderId);
+                    } catch (Throwable $ignored) {}
+                }
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Gagal membagikan jawaban: ' . $e->getMessage()]);
+                exit;
+            }
         }
     }
 
@@ -348,9 +331,9 @@ try {
         }
 
         // OTORISASI: Hanya pembuat asli yang boleh mengedit
-        $stmtAuth =$pdo->prepare("SELECT userId FROM task_shared_answers WHERE answerId = :answerId");
-        $stmtAuth->execute(['answerId' =>$answerId]);
-        $authorId =$stmtAuth->fetchColumn();
+        $stmtAuth = $pdo->prepare("SELECT userId FROM task_shared_answers WHERE answerId = :answerId");
+        $stmtAuth->execute(['answerId' => $answerId]);
+        $authorId = $stmtAuth->fetchColumn();
 
         if ($authorId === false) {
             echo json_encode(['success' => false, 'message' => 'Jawaban tidak ditemukan']);
@@ -361,32 +344,84 @@ try {
             exit;
         }
 
+        $newlyCreatedFolderId = null;
         $pdo->beginTransaction();
 
-        $stmtUpdate =$pdo->prepare("
-            UPDATE task_shared_answers 
-            SET answerTitle = :title, answerNotes = :notes, updatedAt = NOW()
-            WHERE answerId = :answerId
-        ");
-        $stmtUpdate->execute([
-            'title'    => $answerTitle,
-            'notes'    => $answerNotes,
-            'answerId' => $answerId
-        ]);
+        try {
+            $stmtUpdate = $pdo->prepare("
+                UPDATE task_shared_answers 
+                SET answerTitle = :title, answerNotes = :notes, updatedAt = NOW()
+                WHERE answerId = :answerId
+            ");
+            $stmtUpdate->execute([
+                'title'    => $answerTitle,
+                'notes'    => $answerNotes,
+                'answerId' => $answerId
+            ]);
 
-        saveAnswerAttachments($pdo, $answerId, $_FILES['attachments'] ?? [], __DIR__ . '/../../public/uploads/answers/');
+            saveAnswerAttachments($pdo, $answerId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId);
 
-        $pdo->commit();
-        echo json_encode(['success' => true, 'message' => 'Jawaban berhasil diperbarui']);
-        exit;
+            $pdo->commit();
+            echo json_encode(['success' => true, 'message' => 'Jawaban berhasil diperbarui']);
+            exit;
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            if ($newlyCreatedFolderId !== null) {
+                try {
+                    DriveManager::getInstance()->deleteFolder($newlyCreatedFolderId);
+                } catch (Throwable $ignored) {}
+            }
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Gagal memperbarui jawaban: ' . $e->getMessage()]);
+            exit;
+        }
     }
 
     // ====================================================================================
-    // DELETE REQUESTS (FULL HARD-DELETE)
+    // DELETE REQUESTS (FULL HARD-DELETE & ATTACHMENT DELETION)
     // ====================================================================================
     if ($method === 'DELETE') {
         
-        $rawInput = file_get_contents('php://input');$data = json_decode($rawInput, true) ?:$_POST;
+        $rawInput = file_get_contents('php://input');
+        $data = json_decode($rawInput, true) ?: $_POST;
+
+        if (($data['action'] ?? '') === 'delete_attachment') {
+            $fileId = (int)($data['fileId'] ?? 0);
+            if ($fileId <= 0) {
+                http_response_code(422);
+                echo json_encode(['success' => false, 'message' => 'File ID tidak valid.']);
+                exit;
+            }
+
+            $stmtFile = $pdo->prepare('SELECT filePath FROM task_shared_answer_files WHERE fileId = :fileId');
+            $stmtFile->execute(['fileId' => $fileId]);
+            $filePath = $stmtFile->fetchColumn();
+            if ($filePath === false) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Lampiran tidak ditemukan.']);
+                exit;
+            }
+
+            // Hapus dari Google Drive
+            DriveManager::getInstance()->deleteFile($filePath);
+
+            // Bersihkan jika berkas merupakan file lokal legacy
+            if (!filter_var($filePath, FILTER_VALIDATE_URL)) {
+                $fullPath = realpath(__DIR__ . '/../../' . $filePath);
+                $uploadRoot = realpath(__DIR__ . '/../../public/uploads/answers');
+                if ($fullPath && $uploadRoot && str_starts_with($fullPath, $uploadRoot . DIRECTORY_SEPARATOR) && file_exists($fullPath)) {
+                    @unlink($fullPath);
+                }
+            }
+
+            $stmtDeleteFile = $pdo->prepare('DELETE FROM task_shared_answer_files WHERE fileId = :fileId');
+            $stmtDeleteFile->execute(['fileId' => $fileId]);
+            echo json_encode(['success' => true, 'message' => 'Lampiran berhasil dihapus.']);
+            exit;
+        }
+
         $answerId = (int)($data['answerId'] ?? 0);
 
         if ($answerId <= 0) {
@@ -394,41 +429,30 @@ try {
             exit;
         }
 
-        // OTORISASI: Hanya pembuat asli yang boleh menghapus
-        $stmtAuth =$pdo->prepare("SELECT userId FROM task_shared_answers WHERE answerId = :answerId");
-        $stmtAuth->execute(['answerId' =>$answerId]);
-        $authorId =$stmtAuth->fetchColumn();
+        // OTORISASI: Hanya pembuat asli atau Primordial yang boleh menghapus
+        $stmtAuth = $pdo->prepare("SELECT userId, drive_folder_id FROM task_shared_answers WHERE answerId = :answerId");
+        $stmtAuth->execute(['answerId' => $answerId]);
+        $answerRow = $stmtAuth->fetch(PDO::FETCH_ASSOC);
 
-        if ($authorId === false) {
+        if (!$answerRow) {
             echo json_encode(['success' => false, 'message' => 'Jawaban tidak ditemukan']);
             exit;
         }
-        if ((int)$authorId !== $userId && !$canDeleteAnyAnswer) {
+        if ((int)$answerRow['userId'] !== $userId && !$canDeleteAnyAnswer) {
             echo json_encode(['success' => false, 'message' => 'Akses ditolak. Anda tidak berhak menghapus jawaban ini.']);
             exit;
         }
 
-        // Hapus file fisik terlebih dahulu dan jangan hapus record bila unlink gagal.
-        $stmtFiles =$pdo->prepare("SELECT filePath FROM task_shared_answer_files WHERE answerId = :answerId");
-        $stmtFiles->execute(['answerId' =>$answerId]);
-        $files =$stmtFiles->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($files as $file) {
-            $fullPath = realpath(__DIR__ . '/../../' . $file['filePath']);
-            $uploadRoot = realpath(__DIR__ . '/../../public/uploads/answers');
-            if ($fullPath && $uploadRoot && str_starts_with($fullPath, $uploadRoot . DIRECTORY_SEPARATOR)
-                && file_exists($fullPath) && !unlink($fullPath)) {
-                http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'File jawaban gagal dihapus; data tidak diubah.']);
-                exit;
-            }
+        // Cascade Deletion Protocol: Hapus folder Google Drive jika ada
+        if (!empty($answerRow['drive_folder_id'])) {
+            DriveManager::getInstance()->deleteFolder($answerRow['drive_folder_id']);
         }
 
-        // HARD DELETE baris data di database setelah penghapusan file berhasil.
+        // HARD DELETE baris data di database setelah penghapusan folder Drive berhasil.
         // Karena FK diset ON DELETE CASCADE, menghapus row ini otomatis menghapus data anak di task_shared_answer_files
         $pdo->beginTransaction();
-        $stmtDel =$pdo->prepare("DELETE FROM task_shared_answers WHERE answerId = :answerId");
-        $stmtDel->execute(['answerId' =>$answerId]);
+        $stmtDel = $pdo->prepare("DELETE FROM task_shared_answers WHERE answerId = :answerId");
+        $stmtDel->execute(['answerId' => $answerId]);
 
         $pdo->commit();
         echo json_encode(['success' => true, 'message' => 'Jawaban beserta lampirannya berhasil dihapus permanen.']);

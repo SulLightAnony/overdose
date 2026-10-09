@@ -4,6 +4,7 @@ init_secure_session();
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/DriveManager.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -295,6 +296,51 @@ try {
                 'message' => 'Kalimat konfirmasi penghapusan tidak sesuai. Penghapusan dibatalkan.'
             ]);
             exit;
+        }
+
+        // Cascade Deletion Protocol: Kumpulkan semua child drive_folder_id dari tugas, materi, dan jawaban di bawah semester ini
+        $driveFolderIds = [];
+
+        // 1. Dari tabel tasks
+        $stmtTaskFolders = $pdo->prepare("SELECT drive_folder_id FROM tasks WHERE semesterId = :id AND drive_folder_id IS NOT NULL");
+        $stmtTaskFolders->execute(['id' => $semesterId]);
+        foreach ($stmtTaskFolders->fetchAll(PDO::FETCH_COLUMN) as $fId) {
+            if (!empty($fId)) {
+                $driveFolderIds[] = $fId;
+            }
+        }
+
+        // 2. Dari tabel learning_material
+        $stmtMatFolders = $pdo->prepare("
+            SELECT lm.drive_folder_id 
+            FROM learning_material lm 
+            JOIN courses c ON lm.courseId = c.courseId 
+            WHERE c.semesterId = :id AND lm.drive_folder_id IS NOT NULL
+        ");
+        $stmtMatFolders->execute(['id' => $semesterId]);
+        foreach ($stmtMatFolders->fetchAll(PDO::FETCH_COLUMN) as $fId) {
+            if (!empty($fId)) {
+                $driveFolderIds[] = $fId;
+            }
+        }
+
+        // 3. Dari tabel task_shared_answers
+        $stmtAnsFolders = $pdo->prepare("
+            SELECT tsa.drive_folder_id 
+            FROM task_shared_answers tsa 
+            JOIN tasks t ON tsa.taskId = t.taskId 
+            WHERE t.semesterId = :id AND tsa.drive_folder_id IS NOT NULL
+        ");
+        $stmtAnsFolders->execute(['id' => $semesterId]);
+        foreach ($stmtAnsFolders->fetchAll(PDO::FETCH_COLUMN) as $fId) {
+            if (!empty($fId)) {
+                $driveFolderIds[] = $fId;
+            }
+        }
+
+        // Hapus permanen seluruh folder di Google Drive sebelum eksekusi database
+        if (!empty($driveFolderIds)) {
+            DriveManager::getInstance()->deleteFolders($driveFolderIds);
         }
 
         $pdo->beginTransaction();

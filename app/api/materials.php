@@ -69,136 +69,48 @@ init_secure_session();
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/DriveManager.php';
 
 header('Content-Type: application/json');
 
-function saveMaterialAttachments(PDO $pdo, int $materialId, array $files, string $uploadDir): void
+function saveMaterialAttachments(PDO $pdo, int $materialId, int $userId, array $files, ?string &$newlyCreatedFolderId = null): void
 {
-    if (!isset($files['name']) || !is_array($files['name'])) {
+    if (!DriveManager::hasFiles($files)) {
         return;
     }
 
-    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
-        throw new RuntimeException('Direktori upload tidak dapat dibuat');
+    $driveManager = DriveManager::getInstance();
+
+    // Ambil drive_folder_id yang sudah ada (jika ada)
+    $stmtFolder = $pdo->prepare('SELECT drive_folder_id FROM learning_material WHERE materialId = :materialId');
+    $stmtFolder->execute(['materialId' => $materialId]);
+    $existingFolderId = $stmtFolder->fetchColumn() ?: null;
+
+    $folderId = $driveManager->resolveEntityFolder('Materials', $existingFolderId, $userId, $materialId);
+
+    if (empty($existingFolderId)) {
+        $newlyCreatedFolderId = $folderId;
+        $stmtUpdateFolder = $pdo->prepare('UPDATE learning_material SET drive_folder_id = :folderId WHERE materialId = :materialId');
+        $stmtUpdateFolder->execute([
+            'folderId'   => $folderId,
+            'materialId' => $materialId
+        ]);
     }
 
-    $allowedMimesByExt = [
-        'pdf'  => ['application/pdf', 'application/x-pdf'],
-        'doc'  => ['application/msword', 'application/octet-stream', 'application/vnd.ms-word'],
-        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip', 'application/octet-stream', 'application/x-zip', 'application/x-zip-compressed'],
-        'xls'  => ['application/vnd.ms-excel', 'application/octet-stream'],
-        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip', 'application/octet-stream', 'application/x-zip', 'application/x-zip-compressed'],
-        'ppt'  => ['application/vnd.ms-powerpoint', 'application/octet-stream'],
-        'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip', 'application/octet-stream', 'application/x-zip', 'application/x-zip-compressed'],
-        'txt'  => ['text/plain', 'text/x-c', 'text/x-c++'],
-        'jpg'  => ['image/jpeg', 'image/pjpeg'],
-        'jpeg' => ['image/jpeg', 'image/pjpeg'],
-        'png'  => ['image/png', 'image/x-png'],
-        'zip'  => ['application/zip', 'application/x-zip-compressed', 'application/x-zip', 'application/octet-stream', 'multipart/x-zip'],
-        'rar'  => ['application/x-rar-compressed', 'application/octet-stream', 'application/vnd.rar']
-    ];
-    $maxFileSize = 10 * 1024 * 1024;
-    $uploadedPaths = [];
-    $fileInfo = @finfo_open(FILEINFO_MIME_TYPE);
+    $uploadedFiles = $driveManager->uploadFiles($folderId, $files);
 
-    // Cek keberadaan tabel material_files
-    $hasMaterialFiles = true;
-    try {
-        $checkMf = $pdo->query("SHOW TABLES LIKE 'material_files'");
-        $hasMaterialFiles = ($checkMf && $checkMf->rowCount() > 0);
-    } catch (Throwable $t) {
-        $hasMaterialFiles = false;
-    }
-
-    $firstUploadedRelativePath = null;
-
-    try {
-        foreach ($files['name'] as $index => $originalName) {
-            $error = (int)($files['error'][$index] ?? UPLOAD_ERR_NO_FILE);
-            if ($error === UPLOAD_ERR_NO_FILE) {
-                continue;
-            }
-            if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) {
-                throw new RuntimeException('Ukuran file ' . basename((string)$originalName) . ' melebihi batas upload server.');
-            }
-            if ($error !== UPLOAD_ERR_OK) {
-                throw new RuntimeException('Pengunggahan file ' . basename((string)$originalName) . ' gagal');
-            }
-
-            $tmpName = $files['tmp_name'][$index] ?? '';
-            $fileSize = (int)($files['size'][$index] ?? 0);
-            $extension = strtolower(pathinfo((string)$originalName, PATHINFO_EXTENSION));
-
-            if (!isset($allowedMimesByExt[$extension])) {
-                throw new RuntimeException('Ekstensi file .' . $extension . ' tidak diperbolehkan');
-            }
-
-            $mimeType = false;
-            if ($fileInfo !== false) {
-                $mimeType = finfo_file($fileInfo, $tmpName);
-            } elseif (function_exists('mime_content_type')) {
-                $mimeType = mime_content_type($tmpName);
-            }
-
-            if (!is_uploaded_file($tmpName) || $fileSize <= 0 || $fileSize > $maxFileSize) {
-                throw new RuntimeException('File tidak valid atau melebihi batas maksimal 10MB');
-            }
-
-            if ($mimeType) {
-                $validMimes = (array)$allowedMimesByExt[$extension];
-                if (!in_array($mimeType, $validMimes, true) && $mimeType !== 'application/octet-stream') {
-                    throw new RuntimeException('Tipe file (' . $mimeType . ') untuk .' . $extension . ' tidak cocok');
-                }
-            }
-
-            $safeName = bin2hex(random_bytes(16)) . '.' . $extension;
-            $destination = $uploadDir . $safeName;
-            if (!move_uploaded_file($tmpName, $destination)) {
-                throw new RuntimeException('File tidak dapat disimpan');
-            }
-            $uploadedPaths[] = $destination;
-
-            $relativePath = 'public/uploads/materials/' . $safeName;
-            if ($firstUploadedRelativePath === null) {
-                $firstUploadedRelativePath = $relativePath;
-            }
-
-            if ($hasMaterialFiles) {
-                $stmtFile = $pdo->prepare(
-                    'INSERT INTO material_files (materialId, filePath, fileName, fileSize, uploadedAt)
-                     VALUES (:materialId, :filePath, :fileName, :fileSize, NOW())'
-                );
-                $stmtFile->execute([
-                    'materialId' => $materialId,
-                    'filePath'   => $relativePath,
-                    'fileName'   => basename((string)$originalName),
-                    'fileSize'   => $fileSize
-                ]);
-            }
-        }
-
-        // Fallback simpan fileUrl di learning_material jika tabel material_files belum dibuat
-        if (!$hasMaterialFiles && $firstUploadedRelativePath !== null) {
-            try {
-                $stmtFallback = $pdo->prepare('UPDATE learning_material SET fileUrl = :fileUrl WHERE materialId = :materialId');
-                $stmtFallback->execute([
-                    'fileUrl'    => $firstUploadedRelativePath,
-                    'materialId' => $materialId
-                ]);
-            } catch (Throwable $e) {
-                // Abaikan jika kolom fileUrl tidak tersedia
-            }
-        }
-    } catch (Throwable $exception) {
-        foreach ($uploadedPaths as $uploadedPath) {
-            if (is_file($uploadedPath)) {
-                @unlink($uploadedPath);
-            }
-        }
-        throw $exception;
-    } finally {
-        if ($fileInfo !== false) {
-            finfo_close($fileInfo);
+    if (!empty($uploadedFiles)) {
+        $stmtFile = $pdo->prepare(
+            'INSERT INTO material_files (materialId, filePath, fileName, fileSize, uploadedAt)
+             VALUES (:materialId, :filePath, :fileName, :fileSize, NOW())'
+        );
+        foreach ($uploadedFiles as $file) {
+            $stmtFile->execute([
+                'materialId' => $materialId,
+                'filePath'   => $file['filePath'],
+                'fileName'   => $file['fileName'],
+                'fileSize'   => $file['fileSize']
+            ]);
         }
     }
 }
@@ -397,42 +309,55 @@ try {
                 $hasSemesterIdCol = false;
             }
 
+            $newlyCreatedFolderId = null;
             $pdo->beginTransaction();
 
-            // Insert Material Record secara dinamis sesuai struktur tabel
-            if ($hasSemesterIdCol && $semesterId > 0) {
-                $stmtMaterial = $pdo->prepare("
-                    INSERT INTO learning_material (courseId, semesterId, materialTitle, materialDescription, uploadedByUserId, createdAt, updatedAt) 
-                    VALUES (:courseId, :semesterId, :title, :desc, :creator, NOW(), NOW())
-                ");
-                $stmtMaterial->execute([
-                    'courseId'   => $courseId,
-                    'semesterId' => $semesterId,
-                    'title'      => $materialTitle,
-                    'desc'       => $materialDescription,
-                    'creator'    => $userId
-                ]);
-            } else {
-                $stmtMaterial = $pdo->prepare("
-                    INSERT INTO learning_material (courseId, materialTitle, materialDescription, uploadedByUserId, createdAt, updatedAt) 
-                    VALUES (:courseId, :title, :desc, :creator, NOW(), NOW())
-                ");
-                $stmtMaterial->execute([
-                    'courseId'   => $courseId,
-                    'title'      => $materialTitle,
-                    'desc'       => $materialDescription,
-                    'creator'    => $userId
-                ]);
+            try {
+                // Insert Material Record secara dinamis sesuai struktur tabel
+                if ($hasSemesterIdCol && $semesterId > 0) {
+                    $stmtMaterial = $pdo->prepare("
+                        INSERT INTO learning_material (courseId, semesterId, materialTitle, materialDescription, uploadedByUserId, createdAt, updatedAt) 
+                        VALUES (:courseId, :semesterId, :title, :desc, :creator, NOW(), NOW())
+                    ");
+                    $stmtMaterial->execute([
+                        'courseId'   => $courseId,
+                        'semesterId' => $semesterId,
+                        'title'      => $materialTitle,
+                        'desc'       => $materialDescription,
+                        'creator'    => $userId
+                    ]);
+                } else {
+                    $stmtMaterial = $pdo->prepare("
+                        INSERT INTO learning_material (courseId, materialTitle, materialDescription, uploadedByUserId, createdAt, updatedAt) 
+                        VALUES (:courseId, :title, :desc, :creator, NOW(), NOW())
+                    ");
+                    $stmtMaterial->execute([
+                        'courseId'   => $courseId,
+                        'title'      => $materialTitle,
+                        'desc'       => $materialDescription,
+                        'creator'    => $userId
+                    ]);
+                }
+                $newMaterialId = (int)$pdo->lastInsertId();
+
+                saveMaterialAttachments($pdo, $newMaterialId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId);
+
+                $pdo->commit();
+                echo json_encode(['success' => true, 'message' => 'Materi berhasil dibagikan. +1 Poin Kontribusi!']);
+                exit;
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                if ($newlyCreatedFolderId !== null) {
+                    try {
+                        DriveManager::getInstance()->deleteFolder($newlyCreatedFolderId);
+                    } catch (Throwable $ignored) {}
+                }
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Gagal menambahkan materi: ' . $e->getMessage()]);
+                exit;
             }
-            $newMaterialId = (int)$pdo->lastInsertId();
-
-            saveMaterialAttachments($pdo, $newMaterialId, $_FILES['attachments'] ?? [], __DIR__ . '/../../public/uploads/materials/');
-
-            // Poin kontribusi (+1) secara otomatis terhitung di query dashboard berdasarkan COUNT(materialId)
-            
-            $pdo->commit();
-            echo json_encode(['success' => true, 'message' => 'Materi berhasil dibagikan. +1 Poin Kontribusi!']);
-            exit;
         }
     }
 
@@ -461,33 +386,85 @@ try {
             exit;
         }
 
+        $newlyCreatedFolderId = null;
         $pdo->beginTransaction();
 
-        $stmtUpdate =$pdo->prepare("
-            UPDATE learning_material 
-            SET materialTitle = :title, materialDescription = :desc, 
-                lastEditedByUserId = :editor, updatedAt = NOW()
-            WHERE materialId = :materialId AND deletionStatus = 0
-        ");
-        $stmtUpdate->execute([
-            'title'      => $materialTitle,
-            'desc'       => $materialDescription,
-            'editor'     => $userId,
-            'materialId' => $materialId
-        ]);
+        try {
+            $stmtUpdate = $pdo->prepare("
+                UPDATE learning_material 
+                SET materialTitle = :title, materialDescription = :desc, 
+                    lastEditedByUserId = :editor, updatedAt = NOW()
+                WHERE materialId = :materialId AND deletionStatus = 0
+            ");
+            $stmtUpdate->execute([
+                'title'      => $materialTitle,
+                'desc'       => $materialDescription,
+                'editor'     => $userId,
+                'materialId' => $materialId
+            ]);
 
-        saveMaterialAttachments($pdo, $materialId, $_FILES['attachments'] ?? [], __DIR__ . '/../../public/uploads/materials/');
+            saveMaterialAttachments($pdo, $materialId, $userId, $_FILES['attachments'] ?? [], $newlyCreatedFolderId);
 
-        $pdo->commit();
-        echo json_encode(['success' => true, 'message' => 'Materi berhasil diperbarui']);
-        exit;
+            $pdo->commit();
+            echo json_encode(['success' => true, 'message' => 'Materi berhasil diperbarui']);
+            exit;
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            if ($newlyCreatedFolderId !== null) {
+                try {
+                    DriveManager::getInstance()->deleteFolder($newlyCreatedFolderId);
+                } catch (Throwable $ignored) {}
+            }
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Gagal memperbarui materi: ' . $e->getMessage()]);
+            exit;
+        }
     }
 
     // ====================================================================================
-    // DELETE REQUESTS (SOFT DELETE MATERIAL)
+    // DELETE REQUESTS (SOFT DELETE MATERIAL & ATTACHMENT DELETION)
     // ====================================================================================
     if ($method === 'DELETE') {
-        $rawInput = file_get_contents('php://input');$data = json_decode($rawInput, true) ?:$_POST;
+        $rawInput = file_get_contents('php://input');
+        $data = json_decode($rawInput, true) ?: $_POST;
+
+        if (($data['action'] ?? '') === 'delete_attachment') {
+            $fileId = (int)($data['fileId'] ?? 0);
+            if ($fileId <= 0) {
+                http_response_code(422);
+                echo json_encode(['success' => false, 'message' => 'File ID tidak valid.']);
+                exit;
+            }
+
+            $stmtFile = $pdo->prepare('SELECT filePath FROM material_files WHERE fileId = :fileId');
+            $stmtFile->execute(['fileId' => $fileId]);
+            $filePath = $stmtFile->fetchColumn();
+            if ($filePath === false) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Lampiran tidak ditemukan.']);
+                exit;
+            }
+
+            // Hapus dari Google Drive
+            DriveManager::getInstance()->deleteFile($filePath);
+
+            // Bersihkan jika berkas merupakan file lokal legacy
+            if (!filter_var($filePath, FILTER_VALIDATE_URL)) {
+                $fullPath = realpath(__DIR__ . '/../../' . $filePath);
+                $uploadRoot = realpath(__DIR__ . '/../../public/uploads/materials');
+                if ($fullPath && $uploadRoot && str_starts_with($fullPath, $uploadRoot . DIRECTORY_SEPARATOR) && file_exists($fullPath)) {
+                    @unlink($fullPath);
+                }
+            }
+
+            $stmtDeleteFile = $pdo->prepare('DELETE FROM material_files WHERE fileId = :fileId');
+            $stmtDeleteFile->execute(['fileId' => $fileId]);
+            echo json_encode(['success' => true, 'message' => 'Lampiran berhasil dihapus.']);
+            exit;
+        }
+
         $materialId = (int)($data['materialId'] ?? 0);
 
         if ($materialId <= 0) {
@@ -497,37 +474,26 @@ try {
 
         $pdo->beginTransaction();
 
-        $stmtMaterial = $pdo->prepare("SELECT deletionStatus FROM learning_material WHERE materialId = :materialId FOR UPDATE");
+        $stmtMaterial = $pdo->prepare("SELECT drive_folder_id, deletionStatus FROM learning_material WHERE materialId = :materialId FOR UPDATE");
         $stmtMaterial->execute(['materialId' => $materialId]);
-        $materialState = $stmtMaterial->fetchColumn();
-        if ($materialState === false) {
+        $matRow = $stmtMaterial->fetch(PDO::FETCH_ASSOC);
+        if (!$matRow) {
             $pdo->rollBack();
             echo json_encode(['success' => false, 'message' => 'Materi tidak ditemukan']);
             exit;
         }
-        if ((int)$materialState === 1) {
+        if ((int)$matRow['deletionStatus'] === 1) {
             $pdo->rollBack();
             echo json_encode(['success' => false, 'message' => 'Materi sudah dihapus']);
             exit;
         }
 
-        $stmtFiles =$pdo->prepare("SELECT filePath FROM material_files WHERE materialId = :materialId");
-        $stmtFiles->execute(['materialId' =>$materialId]);
-        $files =$stmtFiles->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($files as $file) {
-            $fullPath = realpath(__DIR__ . '/../../' . $file['filePath']);
-            $uploadRoot = realpath(__DIR__ . '/../../public/uploads/materials');
-            if ($fullPath && $uploadRoot && str_starts_with($fullPath, $uploadRoot . DIRECTORY_SEPARATOR)
-                && file_exists($fullPath) && !unlink($fullPath)) {
-                $pdo->rollBack();
-                http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Lampiran gagal dihapus; materi tidak diubah.']);
-                exit;
-            }
+        // Cascade Deletion Protocol: Hapus folder Google Drive jika ada
+        if (!empty($matRow['drive_folder_id'])) {
+            DriveManager::getInstance()->deleteFolder($matRow['drive_folder_id']);
         }
 
-        $stmtDelMat =$pdo->prepare(
+        $stmtDelMat = $pdo->prepare(
             "UPDATE learning_material
              SET deletionStatus = 1, deletedByUserId = :userId, deletedAt = NOW(), updatedAt = NOW()
              WHERE materialId = :materialId AND deletionStatus = 0"
