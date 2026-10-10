@@ -70,6 +70,11 @@ ob_start();
     <audio id="oiiaCatAudio" src="<?= BASE_URL ?>public/assets/cat/cat-song.mp3" preload="auto"></audio>
 </div>
 
+<!-- Explosion FX Canvas, White Flash & Strobe Overlay -->
+<canvas id="oiiaExplosionCanvas" class="oiia-explosion-canvas"></canvas>
+<div id="oiiaFlashOverlay" class="oiia-flash-overlay"></div>
+<div id="oiiaStrobeOverlay" class="oiia-strobe-flash"></div>
+
 <script>
 const BASE_URL = "<?= BASE_URL ?>";
 </script>
