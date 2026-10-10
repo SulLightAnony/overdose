@@ -234,7 +234,7 @@ ob_start();
                     <div class="mb-3">
                         <label for="taskAttachments" class="form-label">Lampirkan File Pendukung (Bisa lebih dari 1)</label>
                         <input class="form-control" type="file" id="taskAttachments" name="attachments[]" multiple>
-                        <div class="form-text">Maksimal 5 file, ukuran per file maksimal 10MB (PDF, Word, Excel, PPT, ZIP, dll).</div>
+                        <div class="form-text">Maksimal 10 file, total akumulasi ukuran maksimal 15MB (PDF, Word, Excel, PPT, ZIP, dll).</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -266,7 +266,7 @@ ob_start();
                     <div class="mb-3">
                         <label for="materialAttachments" class="form-label">Lampirkan File Materi <span class="text-danger">*</span></label>
                         <input class="form-control" type="file" id="materialAttachments" name="attachments[]" multiple required>
-                        <div class="form-text">Maksimal 5 file, ukuran per file maksimal 10MB (PDF, Word, Excel, PPT, ZIP, dll).</div>
+                        <div class="form-text">Maksimal 10 file, total akumulasi ukuran maksimal 15MB (PDF, Word, Excel, PPT, ZIP, dll).</div>
                     </div>
                     
                     <div class="mb-3">

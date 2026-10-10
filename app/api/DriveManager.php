@@ -274,16 +274,42 @@ class DriveManager
             'zip'  => ['application/zip', 'application/x-zip-compressed', 'application/x-zip', 'application/octet-stream', 'multipart/x-zip'],
             'rar'  => ['application/x-rar-compressed', 'application/octet-stream', 'application/vnd.rar']
         ];
-        $maxFileSize = 10 * 1024 * 1024; // 10MB
+        $maxFiles = 10;
+        $maxTotalAccumulatedSize = 15 * 1024 * 1024; // 15MB total akumulasi per upload
+
+        $validFileCount = 0;
+        $totalAccumulatedSize = 0;
+
+        foreach ($files['name'] as $index => $rawName) {
+            $error = (int)($files['error'][$index] ?? UPLOAD_ERR_NO_FILE);
+            if ($error === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) {
+                throw new RuntimeException('Ukuran berkas ' . basename((string)$rawName) . ' melebihi batas upload server.');
+            }
+            if ($error !== UPLOAD_ERR_OK) {
+                throw new RuntimeException('Pengunggahan berkas ' . basename((string)$rawName) . ' gagal.');
+            }
+
+            $validFileCount++;
+            $totalAccumulatedSize += (int)($files['size'][$index] ?? 0);
+        }
+
+        if ($validFileCount > $maxFiles) {
+            throw new RuntimeException('Jumlah berkas melebihi batas maksimal 10 file per upload.');
+        }
+
+        if ($totalAccumulatedSize > $maxTotalAccumulatedSize) {
+            $formattedTotal = round($totalAccumulatedSize / (1024 * 1024), 2);
+            throw new RuntimeException("Total ukuran seluruh berkas ({$formattedTotal}MB) melebihi batas akumulasi maksimal 15MB per upload.");
+        }
 
         try {
             foreach ($files['name'] as $index => $rawName) {
                 $error = (int)($files['error'][$index] ?? UPLOAD_ERR_NO_FILE);
                 if ($error === UPLOAD_ERR_NO_FILE) {
                     continue;
-                }
-                if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) {
-                    throw new RuntimeException('Ukuran berkas ' . basename((string)$rawName) . ' melebihi batas maksimal 10MB.');
                 }
                 if ($error !== UPLOAD_ERR_OK) {
                     throw new RuntimeException('Pengunggahan berkas ' . basename((string)$rawName) . ' gagal.');
@@ -297,8 +323,8 @@ class DriveManager
                 if (!is_uploaded_file($tmpPath) || $fileSize <= 0) {
                     throw new RuntimeException('Berkas tidak valid: ' . $cleanName);
                 }
-                if ($fileSize > $maxFileSize) {
-                    throw new RuntimeException('Berkas ' . $cleanName . ' melebihi batas maksimal 10MB.');
+                if ($fileSize > $maxTotalAccumulatedSize) {
+                    throw new RuntimeException('Berkas ' . $cleanName . ' melebihi batas akumulasi maksimal 15MB.');
                 }
 
                 // 1. Validasi Whitelist Ekstensi

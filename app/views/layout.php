@@ -78,7 +78,7 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
                 } else {
                     const fallbackHelper = document.createElement('div');
                     fallbackHelper.className = 'form-text text-muted';
-                    fallbackHelper.textContent = 'Maksimal 5 file, ukuran per file maksimal 10MB.';
+                    fallbackHelper.textContent = 'Maksimal 10 file, total akumulasi ukuran maksimal 15MB.';
                     input.insertAdjacentElement('afterend', fallbackHelper);
                     insertTarget = fallbackHelper;
                 }
@@ -92,7 +92,8 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
                         const summary = document.createElement('div');
                         summary.className = 'd-flex justify-content-between align-items-center mb-1 text-muted';
                         summary.style.fontSize = '0.78rem';
-                        summary.innerHTML = `<span class="fw-semibold">File dipilih (${files.length}/5):</span><span class="text-muted">Maks. 10MB/file</span>`;
+                        const totalSize = files.reduce((acc, f) => acc + f.size, 0);
+                        summary.innerHTML = `<span class="fw-semibold">File dipilih (${files.length}/10):</span><span class="text-muted">${formatMultiFileSize(totalSize)} / Maks. 15MB</span>`;
                         list.appendChild(summary);
                     }
 
@@ -159,9 +160,10 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
                     const newFiles = Array.from(input.files || []);
                     if (!newFiles.length) return;
 
-                    const maxFiles = 5;
-                    const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+                    const maxFiles = 10;
+                    const maxTotalSizeBytes = 15 * 1024 * 1024; // 15MB total akumulasi
                     let currentCount = transfer.files.length;
+                    let currentTotalSize = Array.from(transfer.files).reduce((acc, f) => acc + f.size, 0);
                     let rejectedSizeFiles = [];
                     let rejectedQuotaCount = 0;
 
@@ -173,7 +175,7 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
                             continue;
                         }
 
-                        if (file.size > maxSizeBytes) {
+                        if (currentTotalSize + file.size > maxTotalSizeBytes) {
                             rejectedSizeFiles.push(file.name);
                             continue;
                         }
@@ -190,17 +192,18 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
                         existingNames.add(uniqueName);
                         transfer.items.add(fileToAdd);
                         currentCount++;
+                        currentTotalSize += file.size;
                     }
 
                     if (rejectedSizeFiles.length > 0) {
                         const msg = rejectedSizeFiles.length === 1
-                            ? `File "${rejectedSizeFiles[0]}" melebihi batas 10MB dan tidak ditambahkan.`
-                            : `${rejectedSizeFiles.length} file melebihi batas 10MB dan tidak ditambahkan.`;
+                            ? `File "${rejectedSizeFiles[0]}" tidak ditambahkan karena total ukuran melebihi batas akumulasi 15MB.`
+                            : `${rejectedSizeFiles.length} file tidak ditambahkan karena total ukuran melebihi batas akumulasi 15MB.`;
                         window.appToast?.(msg, 'warning');
                     }
 
                     if (rejectedQuotaCount > 0) {
-                        window.appToast?.(`Batas maksimal 5 file tercapai. ${rejectedQuotaCount} file lainnya tidak ditambahkan.`, 'warning');
+                        window.appToast?.(`Batas maksimal 10 file tercapai. ${rejectedQuotaCount} file lainnya tidak ditambahkan.`, 'warning');
                     }
 
                     input.files = transfer.files;
@@ -229,6 +232,145 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
                 input.files = transfer.files;
                 input._multiFileTransfer = transfer;
                 input._multiFileRender?.();
+            });
+        };
+        /**
+         * Mengirim FormData via XMLHttpRequest dengan pemantauan progres upload (0-100%).
+         * Menampilkan progres angka pada teks tombol submit: "Mengupload... (X%)".
+         * Menggunakan interpolasi cerdas: transmisi browser 0-90%, creeping progress 90-99% saat
+         * server memproses/streaming ke Google Drive, dan menyentuh 100% saat respon sukses tiba.
+         */
+        window.uploadWithProgress = function(url, formData, options = {}) {
+            let button = null;
+            let method = 'POST';
+
+            if (options instanceof HTMLElement) {
+                button = options;
+            } else if (typeof options === 'object' && options !== null) {
+                button = options.button || options.btn || null;
+                if (options.method) method = options.method;
+            }
+
+            // Periksa apakah terdapat file nyata di dalam FormData
+            let hasFiles = false;
+            let totalFilesCount = 0;
+            let totalAccumulatedBytes = 0;
+
+            if (formData instanceof FormData) {
+                for (const [_, val] of formData.entries()) {
+                    if (val instanceof File && (val.size > 0 || (val.name && val.name.length > 0))) {
+                        hasFiles = true;
+                        totalFilesCount++;
+                        totalAccumulatedBytes += val.size;
+                    }
+                }
+            }
+
+            const MAX_UPLOAD_FILES = 10;
+            const MAX_ACCUMULATED_BYTES = 15 * 1024 * 1024; // 15MB
+
+            if (totalFilesCount > MAX_UPLOAD_FILES) {
+                const msg = `Jumlah file (${totalFilesCount}) melebihi batas maksimal 10 file per upload.`;
+                window.appToast?.(msg, 'danger');
+                return Promise.reject(new Error(msg));
+            }
+
+            if (totalAccumulatedBytes > MAX_ACCUMULATED_BYTES) {
+                const msg = `Total akumulasi ukuran file (${formatMultiFileSize(totalAccumulatedBytes)}) melebihi batas maksimal 15MB per upload.`;
+                window.appToast?.(msg, 'danger');
+                return Promise.reject(new Error(msg));
+            }
+
+            if (button) {
+                button.disabled = true;
+                if (hasFiles) {
+                    button.textContent = 'Mengupload... (0%)';
+                } else {
+                    button.textContent = 'Menyimpan...';
+                }
+            }
+
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open(method, url, true);
+
+                let currentPercent = 0;
+                let crawlTimer = null;
+
+                const clearCrawl = () => {
+                    if (crawlTimer) {
+                        clearInterval(crawlTimer);
+                        crawlTimer = null;
+                    }
+                };
+
+                const startCrawl = () => {
+                    if (crawlTimer || !button || !hasFiles) return;
+                    if (currentPercent < 90) currentPercent = 90;
+                    button.textContent = `Mengupload... (${currentPercent}%)`;
+                    
+                    crawlTimer = setInterval(() => {
+                        if (currentPercent < 98) {
+                            currentPercent += 1;
+                            button.textContent = `Mengupload... (${currentPercent}%)`;
+                        } else if (currentPercent < 99) {
+                            currentPercent = 99;
+                            button.textContent = `Mengupload... (${currentPercent}%)`;
+                        }
+                    }, 450);
+                };
+
+                if (xhr.upload) {
+                    xhr.upload.addEventListener('progress', (e) => {
+                        if (e.lengthComputable && e.total > 0 && button && hasFiles) {
+                            // Petakan transfer data browser ke rentang 0% - 90%
+                            const rawPercent = Math.min(90, Math.max(0, Math.round((e.loaded / e.total) * 90)));
+                            if (rawPercent > currentPercent) {
+                                currentPercent = rawPercent;
+                                button.textContent = `Mengupload... (${currentPercent}%)`;
+                            }
+                        }
+                    });
+
+                    xhr.upload.addEventListener('load', () => {
+                        // Transmisi dari browser ke server selesai, server memproses dan streaming ke Google Drive
+                        startCrawl();
+                    });
+                }
+
+                xhr.onload = () => {
+                    clearCrawl();
+                    let data = null;
+                    try {
+                        data = JSON.parse(xhr.responseText);
+                    } catch (err) {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            data = { success: true, message: xhr.responseText };
+                        } else {
+                            return reject(new Error('Respon server tidak valid atau terjadi kegagalan sistem.'));
+                        }
+                    }
+
+                    // Tampilkan 100% jika operasi berhasil diverifikasi oleh server
+                    if (button && hasFiles && (data.success !== false)) {
+                        button.textContent = 'Mengupload... (100%)';
+                        setTimeout(() => resolve(data), 200);
+                    } else {
+                        resolve(data);
+                    }
+                };
+
+                xhr.onerror = () => {
+                    clearCrawl();
+                    reject(new Error('Koneksi terputus atau gagal menghubungi server.'));
+                };
+
+                xhr.ontimeout = () => {
+                    clearCrawl();
+                    reject(new Error('Permintaan waktu habis (timeout). Silakan coba lagi.'));
+                };
+
+                xhr.send(formData);
             });
         };
         document.addEventListener('DOMContentLoaded', () => window.initMultiFileInputs());

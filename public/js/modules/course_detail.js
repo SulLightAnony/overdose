@@ -422,6 +422,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 materialsLoadingSpinner.classList.add('d-none');
                 if (res.success && res.data) {
                     const materials = res.data.materials;
+                    const canHardDelete = Boolean(res.data.canHardDelete);
                     
                     if (materials.length === 0 && materialPage === 1) {
                         materialsListContainer.innerHTML = `
@@ -449,10 +450,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                             <span class="fw-bold text-muted text-decoration-line-through fs-6 align-middle">${escapeHtml(m.materialTitle)}</span>
                                         </div>
                                         ${truncatedDesc ? `<p class="text-muted small mb-2">${escapeHtml(truncatedDesc)}</p>` : ''}
-                                        <div>
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                             <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1.5 fw-semibold small">
                                                 <i class="bi bi-trash-fill me-1"></i>Dihapus oleh ${escapeHtml(m.deletedByUserName || 'Sistem')} pada ${escapeHtml(formatDateTime(m.deletedAt))}
                                             </span>
+                                            ${canHardDelete ? `<button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" data-hard-delete-material="${Number(m.materialId)}">Hapus Permanen</button>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -616,6 +618,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    materialsListContainer.addEventListener('click', async event => {
+        const button = event.target.closest('[data-hard-delete-material]');
+        if (!button || !await window.appConfirm('Materi dan seluruh lampirannya akan dihapus permanen.')) return;
+        button.disabled = true;
+        fetch(`${BASE_URL}app/api/materials.php`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'hard_delete', materialId: button.dataset.hardDeleteMaterial })
+        }).then(response => response.json()).then(result => {
+            if (!result.success) throw new Error(result.message || 'Materi gagal dihapus permanen.');
+            window.appToast?.('Materi dihapus permanen.', 'success');
+            loadMaterials(false);
+        }).catch(error => {
+            window.appToast?.(error.message, 'danger');
+            button.disabled = false;
+        });
+    });
+
     // 8. Otomatisasi Judul Materi dari Nama File Pertama
     const materialFileInput = document.getElementById('materialAttachments');
     const materialTitleInput = document.getElementById('materialTitle');
@@ -633,17 +653,11 @@ document.addEventListener('DOMContentLoaded', function() {
     formTask.addEventListener('submit', function(e) {
         e.preventDefault();
         const btnSubmit = document.getElementById('btnSubmitTask');
-        btnSubmit.disabled = true;
-        btnSubmit.innerHTML = 'Menyimpan...';
 
         let formData = new FormData(this);
         formData.append('action', 'create');
 
-        fetch(`${BASE_URL}app/api/tasks.php`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
+        window.uploadWithProgress(`${BASE_URL}app/api/tasks.php`, formData, btnSubmit)
         .then(res => {
             if (res.success) {
                 window.appToast?.(res.message, 'success');
@@ -670,17 +684,11 @@ document.addEventListener('DOMContentLoaded', function() {
     formMaterial.addEventListener('submit', function(e) {
         e.preventDefault();
         const btnSubmit = document.getElementById('btnSubmitMaterial');
-        btnSubmit.disabled = true;
-        btnSubmit.innerHTML = 'Mengunggah...';
 
         let formData = new FormData(this);
         formData.append('action', 'create');
 
-        fetch(`${BASE_URL}app/api/materials.php`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
+        window.uploadWithProgress(`${BASE_URL}app/api/materials.php`, formData, btnSubmit)
         .then(res => {
             if (res.success) {
                 window.appToast?.(res.message, 'success');

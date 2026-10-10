@@ -151,7 +151,7 @@ ob_start();
                     <div class="mb-3 border rounded p-3 bg-light">
                         <label for="answerAttachments" class="form-label fw-bold">Lampirkan File Jawaban <span class="text-danger" id="fileRequiredStar">*</span></label>
                         <input class="form-control mb-2" type="file" id="answerAttachments" name="attachments[]" multiple>
-                        <div class="form-text" id="fileHelpText">Maksimal 5 file, ukuran per file maksimal 10MB (PDF, Word, Script Code, ZIP, Gambar, dll).</div>
+                        <div class="form-text" id="fileHelpText">Maksimal 10 file, total akumulasi ukuran maksimal 15MB (PDF, Word, Script Code, ZIP, Gambar, dll).</div>
                     </div>
                 </div>
                 <div class="modal-footer">

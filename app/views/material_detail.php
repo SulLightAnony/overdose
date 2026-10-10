@@ -173,7 +173,7 @@ ob_start();
                     <div class="mb-3 border rounded p-3 bg-light">
                         <label for="editMaterialAttachments" class="form-label fw-bold">Tambahkan File Lampiran Baru (Opsional)</label>
                         <input class="form-control mb-2" type="file" id="editMaterialAttachments" name="attachments[]" multiple>
-                        <div class="form-text">Maksimal 5 file, ukuran per file maksimal 10MB (PDF, Word, Excel, PPT, ZIP, dll). File yang sudah ada sebelumnya tidak akan terhapus.</div>
+                        <div class="form-text">Maksimal 10 file, total akumulasi ukuran maksimal 15MB (PDF, Word, Excel, PPT, ZIP, dll). File yang sudah ada sebelumnya tidak akan terhapus.</div>
                     </div>
                 </div>
                 <div class="modal-footer">

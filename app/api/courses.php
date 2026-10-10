@@ -259,11 +259,12 @@ try {
             echo json_encode([
                 'success' => true,
                 'data' => [
-                    'materials' => $materials,
-                    'total'     => $totalMaterials,
-                    'page'      => $page,
-                    'limit'     => $limit,
-                    'hasMore'   => ($offset + $limit) < $totalMaterials
+                    'materials'     => $materials,
+                    'total'         => $totalMaterials,
+                    'page'          => $page,
+                    'limit'         => $limit,
+                    'hasMore'       => ($offset + $limit) < $totalMaterials,
+                    'canHardDelete' => $isManager
                 ]
             ]);
             exit;

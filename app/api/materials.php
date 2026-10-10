@@ -445,6 +445,49 @@ try {
         $rawInput = file_get_contents('php://input');
         $data = json_decode($rawInput, true) ?: $_POST;
 
+        if (($data['action'] ?? '') === 'hard_delete') {
+            $materialId = (int)($data['materialId'] ?? 0);
+            $stmtRole = $pdo->prepare('SELECT roleLevel FROM users WHERE userId = :userId');
+            $stmtRole->execute(['userId' => $userId]);
+            if (!in_array($stmtRole->fetchColumn(), ['Sepuh', 'Primordial'], true)) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Akses ditolak.']);
+                exit;
+            }
+
+            $stmtMat = $pdo->prepare('SELECT drive_folder_id, deletionStatus FROM learning_material WHERE materialId = :materialId');
+            $stmtMat->execute(['materialId' => $materialId]);
+            $matRow = $stmtMat->fetch(PDO::FETCH_ASSOC);
+            if (!$matRow || (int)$matRow['deletionStatus'] !== 1) {
+                http_response_code(409);
+                echo json_encode(['success' => false, 'message' => 'Hanya materi yang sudah dihapus sementara dapat dihapus permanen.']);
+                exit;
+            }
+
+            // Hapus folder Drive secara permanen jika ada
+            if (!empty($matRow['drive_folder_id'])) {
+                DriveManager::getInstance()->deleteFolder($matRow['drive_folder_id']);
+            }
+
+            // Bersihkan file lokal legacy jika ada
+            $stmtFiles = $pdo->prepare('SELECT filePath FROM material_files WHERE materialId = :materialId');
+            $stmtFiles->execute(['materialId' => $materialId]);
+            foreach ($stmtFiles->fetchAll(PDO::FETCH_COLUMN) as $filePath) {
+                if (!filter_var($filePath, FILTER_VALIDATE_URL)) {
+                    $fullPath = realpath(__DIR__ . '/../../' . $filePath);
+                    $uploadRoot = realpath(__DIR__ . '/../../public/uploads/materials');
+                    if ($fullPath && $uploadRoot && str_starts_with($fullPath, $uploadRoot . DIRECTORY_SEPARATOR) && file_exists($fullPath)) {
+                        @unlink($fullPath);
+                    }
+                }
+            }
+
+            $stmtHardDelete = $pdo->prepare('DELETE FROM learning_material WHERE materialId = :materialId AND deletionStatus = 1');
+            $stmtHardDelete->execute(['materialId' => $materialId]);
+            echo json_encode(['success' => true, 'message' => 'Materi dihapus permanen.']);
+            exit;
+        }
+
         if (($data['action'] ?? '') === 'delete_attachment') {
             $fileId = (int)($data['fileId'] ?? 0);
             if ($fileId <= 0) {

@@ -148,11 +148,9 @@ document.addEventListener('DOMContentLoaded', function () {
     formEditMaterial.addEventListener('submit', function (event) {
         event.preventDefault();
         const submitButton = document.getElementById('btnSubmitEditMaterial');
-        submitButton.disabled = true;
         const formData = new FormData(formEditMaterial);
 
-        fetch(`${BASE_URL}app/api/materials.php`, { method: 'POST', body: formData })
-            .then(response => response.json())
+        window.uploadWithProgress(`${BASE_URL}app/api/materials.php`, formData, submitButton)
             .then(result => {
                 if (!result.success) throw new Error(result.message || 'Materi gagal diperbarui.');
                 bootstrap.Modal.getInstance(document.getElementById('editMaterialModal'))?.hide();
@@ -160,7 +158,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 loadMaterialDetail();
             })
             .catch(error => window.appToast?.(error.message, 'danger'))
-            .finally(() => { submitButton.disabled = false; });
+            .finally(() => {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Simpan Perubahan';
+            });
     });
 
     btnDeleteMaterial.addEventListener('click', async function () {

@@ -260,6 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     formMethod.value = 'PUT';
                     inputAnswerId.value = ans.answerId;
                     modalTitle.textContent = 'Edit Jawaban';
+                    btnSubmitAnswer.textContent = 'Simpan Perubahan';
                     
                     document.getElementById('answerTitle').value = ans.answerTitle;
                     document.getElementById('answerNotes').value = ans.answerNotes;
@@ -286,6 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formMethod.value = 'POST';
             inputAnswerId.value = '';
             modalTitle.textContent = 'Bagikan Jawaban';
+            btnSubmitAnswer.textContent = 'Simpan & Bagikan';
             fileRequiredStar.style.display = 'inline';
             document.getElementById('answerAttachments').required = true;
         });
@@ -294,9 +296,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // 6. Submit Form Pengiriman (Create / Update via Multipart)
     formAnswer.addEventListener('submit', function(e) {
         e.preventDefault();
-        
-        btnSubmitAnswer.disabled = true;
-        btnSubmitAnswer.textContent = 'Menyimpan...';
 
         let formData = new FormData(this);
         
@@ -305,11 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('action', 'create');
         }
 
-        fetch(`${BASE_URL}app/api/task_answers.php`, {
-            method: 'POST', // POST digunakan untuk mengirim file, override backend via _method=PUT untuk update
-            body: formData
-        })
-        .then(response => response.json())
+        window.uploadWithProgress(`${BASE_URL}app/api/task_answers.php`, formData, btnSubmitAnswer)
         .then(res => {
             if (res.success) {
                 window.appToast?.(res.message, 'success');
@@ -327,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .finally(() => {
             btnSubmitAnswer.disabled = false;
-            btnSubmitAnswer.textContent = 'Simpan & Bagikan';
+            btnSubmitAnswer.textContent = formMethod.value === 'PUT' ? 'Simpan Perubahan' : 'Simpan & Bagikan';
         });
     });
 

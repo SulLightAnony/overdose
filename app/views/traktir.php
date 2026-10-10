@@ -61,9 +61,19 @@ ob_start();
 
 </div>
 
+<!-- Oiia Cat Floating Easter Egg -->
+<div id="oiiaCatContainer" class="oiia-cat-container" title="Oiia Oiia!">
+    <img id="oiiaCatIdle" src="<?= BASE_URL ?>public/assets/cat/cat-idle.png" alt="Oiia Cat Idle" class="oiia-cat-img active">
+    <img id="oiiaCatSlow" src="<?= BASE_URL ?>public/assets/cat/cat-spin-slow.gif" alt="Oiia Cat Spin Slow" class="oiia-cat-img">
+    <img id="oiiaCatMedium" src="<?= BASE_URL ?>public/assets/cat/cat-spin-medium.gif" alt="Oiia Cat Spin Medium" class="oiia-cat-img">
+    <img id="oiiaCatFast" src="<?= BASE_URL ?>public/assets/cat/cat-spin-fast.gif" alt="Oiia Cat Spin Fast" class="oiia-cat-img">
+    <audio id="oiiaCatAudio" src="<?= BASE_URL ?>public/assets/cat/cat-song.mp3" preload="auto"></audio>
+</div>
+
 <script>
 const BASE_URL = "<?= BASE_URL ?>";
 </script>
+<script src="<?= BASE_URL ?>public/js/modules/traktir.js"></script>
 
 <?php
 $content = ob_get_clean();

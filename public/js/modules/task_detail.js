@@ -463,16 +463,10 @@ document.addEventListener('DOMContentLoaded', function() {
     formEditTask.addEventListener('submit', function(e) {
         e.preventDefault();
         const btnSubmit = document.getElementById('btnSubmitEditTask');
-        btnSubmit.disabled = true;
-        btnSubmit.textContent = 'Menyimpan...';
 
         let formData = new FormData(this);
 
-        fetch(`${BASE_URL}app/api/tasks.php`, {
-            method: 'POST', // POST digunakan karena Form Data mengirim '_method=PUT'
-            body: formData
-        })
-        .then(response => response.json())
+        window.uploadWithProgress(`${BASE_URL}app/api/tasks.php`, formData, btnSubmit)
         .then(res => {
             if (res.success) {
                 window.appToast?.('Tugas berhasil diperbarui.', 'success');
