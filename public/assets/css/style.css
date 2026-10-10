@@ -733,6 +733,23 @@ body.login-body {
     transition: opacity 0.06s ease-out;
 }
 
+/* Fullscreen BPM Color Overlay (Opacity 0.1, durasi transisi 0.2s) */
+.oiia-color-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 999980;
+    opacity: 0;
+    mix-blend-mode: color;
+    transition: background-color 0.2s linear, opacity 0.2s ease;
+}
+
+.oiia-cat-clone {
+    filter: drop-shadow(0 0 20px rgba(0, 229, 255, 0.85)) drop-shadow(0 10px 22px rgba(0, 0, 0, 0.35));
+}
+
 .oiia-explosion-canvas {
     position: fixed;
     inset: 0;

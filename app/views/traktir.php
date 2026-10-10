@@ -70,6 +70,17 @@ ob_start();
     <audio id="oiiaCatAudio" src="<?= BASE_URL ?>public/assets/cat/cat-song.mp3" preload="auto"></audio>
 </div>
 
+<!-- Oiia Cat Clone (00:18:900 s/d End Peak) -->
+<div id="oiiaCatCloneContainer" class="oiia-cat-container oiia-cat-clone" style="display: none;" title="Oiia Clone!">
+    <img id="oiiaCloneIdle" src="<?= BASE_URL ?>public/assets/cat/cat-idle.png" alt="Oiia Cat Idle Clone" class="oiia-cat-img active">
+    <img id="oiiaCloneSlow" src="<?= BASE_URL ?>public/assets/cat/cat-spin-slow.gif" alt="Oiia Cat Spin Slow Clone" class="oiia-cat-img">
+    <img id="oiiaCloneMedium" src="<?= BASE_URL ?>public/assets/cat/cat-spin-medium.gif" alt="Oiia Cat Spin Medium Clone" class="oiia-cat-img">
+    <img id="oiiaCloneFast" src="<?= BASE_URL ?>public/assets/cat/cat-spin-fast.gif" alt="Oiia Cat Spin Fast Clone" class="oiia-cat-img">
+</div>
+
+<!-- Fullscreen BPM Color Overlay (Opacity 0.1, berganti tiap BPM durasi 0.2s) -->
+<div id="oiiaColorOverlay" class="oiia-color-overlay"></div>
+
 <!-- Explosion FX Canvas, White Flash & Strobe Overlay -->
 <canvas id="oiiaExplosionCanvas" class="oiia-explosion-canvas"></canvas>
 <div id="oiiaFlashOverlay" class="oiia-flash-overlay"></div>
