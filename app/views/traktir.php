@@ -29,7 +29,7 @@ ob_start();
         <div class="col-12 col-md-8 col-lg-6 col-xl-5">
             <div class="card border-0 shadow-sm rounded-4 text-center p-4 p-md-5">
                 <div class="mb-4">
-                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary mb-3" style="width: 64px; height: 64px;">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-dark bg-opacity-10 mb-3" style="width: 64px; height: 64px;">
                         <i class="bi bi-qr-code-scan fs-2"></i>
                     </div>
                     <h5 class="fw-bold text-dark mb-1">Scan QRIS</h5>

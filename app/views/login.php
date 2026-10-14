@@ -22,13 +22,14 @@ if ($errorCode) {
             $modalTitle = 'Login Gagal';
             $modalMessage = 'Proses gagal. Gunakan email Polban (@polban.ac.id) untuk login.';
             break;
+        case 'process_failed':
         case 'blacklisted':
-            $modalTitle = 'Akses Ditolak';
-            $modalMessage = 'Terdapat sesuatu yang salah dengan akunmu.';
+            $modalTitle = 'Terjadi Kesalahan';
+            $modalMessage = 'Terjadi kesalahan saat memproses permintaan Anda. Silakan coba beberapa saat lagi.';
             break;
         default:
             $modalTitle = 'Terjadi Kesalahan';
-            $modalMessage = 'Terjadi kesalahan tidak terduga saat mencoba login. Silakan coba lagi nanti.';
+            $modalMessage = 'Terjadi kesalahan saat memproses permintaan Anda. Silakan coba beberapa saat lagi.';
             break;
     }
 }

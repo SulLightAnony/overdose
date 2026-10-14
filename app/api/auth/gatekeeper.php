@@ -23,7 +23,7 @@ $denyRequest = static function (int $statusCode, string $message) use ($isApiReq
             'data' => null
         ]);
     } else {
-        header('Location: ' . BASE_URL . 'login');
+        header('Location: ' . BASE_URL . 'login?error=process_failed');
     }
     exit;
 };
@@ -36,7 +36,10 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
 // 2. Validasi keberadaan dan status akun pada setiap request yang dilindungi.
 require_once __DIR__ . '/../db.php';
 try {
-    $stmtUser = $pdo->prepare('SELECT userStatus, roleLevel FROM users WHERE userId = :userId LIMIT 1');
+    $stmtUser = $pdo->prepare('SELECT u.userStatus, u.roleLevel, u.emailAddress, b.blacklistId 
+                               FROM users u 
+                               LEFT JOIN emailblacklists b ON LOWER(u.emailAddress) = LOWER(b.emailAddress)
+                               WHERE u.userId = :userId LIMIT 1');
     $stmtUser->execute(['userId' => (int)$_SESSION['user_id']]);
     $currentUser = $stmtUser->fetch(PDO::FETCH_ASSOC);
 } catch (Throwable $exception) {
@@ -45,18 +48,19 @@ try {
 }
 
 if (!$currentUser) {
-    $denyRequest(401, 'Sesi tidak valid atau pengguna telah dihapus.');
+    $denyRequest(401, 'Terjadi kesalahan saat memproses permintaan Anda. Silakan coba beberapa saat lagi.');
 }
 
-if ($currentUser['userStatus'] === 'blocked') {
-    $denyRequest(403, 'Akun Anda telah diblokir.');
+if ($currentUser['userStatus'] === 'blocked' || !empty($currentUser['blacklistId'])) {
+    $denyRequest(403, 'Terjadi kesalahan saat memproses permintaan Anda. Silakan coba beberapa saat lagi.');
 }
 
 // Jangan memakai role lama dari session setelah perubahan role di database.
 $_SESSION['role_level'] = $currentUser['roleLevel'];
 
 // 3. Ambil path URL saat ini untuk mendeteksi halaman yang sedang diakses
-$currentPath = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
+$requestUri = $_SERVER['REQUEST_URI'] ?? '';
+$currentPath = trim(parse_url($requestUri, PHP_URL_PATH) ?? '', '/');
 $isOnboardingPage = str_contains($currentPath, 'settings') || str_contains($currentPath, 'configuration');
 
 // 4. Cek status kelengkapan onboarding

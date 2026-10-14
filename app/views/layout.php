@@ -463,14 +463,12 @@ $hasNotification = $_SESSION['has_unread_notification'] ?? false;
                 <li class="my-2">
                     <hr class="border-secondary opacity-25 m-0">
                 </li>
-                <?php if ($userRole === 'Primordial'): ?>
                 <li class="nav-item">
                     <a href="<?= BASE_URL ?>user-management" class="nav-link <?= (isset($activeMenu) && $activeMenu === 'user-management') ? 'active' : '' ?>">
                         <i class="bi bi-people-fill"></i>
                         <span>Pengguna</span>
                     </a>
                 </li>
-                <?php endif; ?>
                 <li class="nav-item">
                     <a href="<?= BASE_URL ?>blacklist" class="nav-link <?= (isset($activeMenu) && $activeMenu === 'blacklist') ? 'active' : '' ?>">
                         <i class="bi bi-shield-x"></i>

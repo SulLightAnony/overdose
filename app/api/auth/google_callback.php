@@ -38,7 +38,7 @@ curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 $response = curl_exec($ch);
-curl_close($ch);
+unset($ch);
 
 $tokenData = json_decode($response, true);
 if (!isset($tokenData['access_token'])) {
@@ -55,7 +55,7 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
 ]);
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 $userProfileResponse = curl_exec($ch);
-curl_close($ch);
+unset($ch);
 
 $googleUser = json_decode($userProfileResponse, true);
 $email     = strtolower($googleUser['email'] ?? '');
@@ -74,11 +74,11 @@ if (!str_ends_with($email, ALLOWED_EMAIL_DOMAIN)) {
 // =========================================================================
 // VALIDASI 3: Blacklist Check
 // =========================================================================
-$stmt = $pdo->prepare("SELECT blacklistId FROM emailBlacklists WHERE LOWER(emailAddress) = :email");
+$stmt = $pdo->prepare("SELECT blacklistId FROM emailblacklists WHERE LOWER(emailAddress) = :email");
 $stmt->execute(['email' => $email]);
 
 if ($stmt->fetch()) {
-    header('Location: ' . BASE_URL . 'login?error=blacklisted');
+    header('Location: ' . BASE_URL . 'login?error=process_failed');
     exit;
 }
 
@@ -88,6 +88,11 @@ if ($stmt->fetch()) {
 $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(emailAddress) = :email");
 $stmt->execute(['email' => $email]);
 $user = $stmt->fetch();
+
+if ($user && $user['userStatus'] === 'blocked') {
+    header('Location: ' . BASE_URL . 'login?error=process_failed');
+    exit;
+}
 
 $isNewUser = false;
 

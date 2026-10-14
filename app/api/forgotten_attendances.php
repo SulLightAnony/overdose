@@ -26,10 +26,10 @@ $userId = (int)$_SESSION['user_id'];
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 // ---------------------------------------------------------------------------
-// Auto daily cleanup: remove all records older than today (server date)
+// Auto cleanup: remove records older than 1 day (24 hours)
 // ---------------------------------------------------------------------------
 try {
-    $pdo->prepare("DELETE FROM forgotten_attendances WHERE DATE(created_at) < CURDATE()")->execute();
+    $pdo->prepare("DELETE FROM forgotten_attendances WHERE created_at < NOW() - INTERVAL 1 DAY OR DATE(created_at) < CURDATE()")->execute();
 } catch (Throwable $e) {
     error_log('forgotten_attendances cleanup failed: ' . $e->getMessage());
 }
