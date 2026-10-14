@@ -6,108 +6,212 @@
  * 
  * TUJUAN (PURPOSE):
  * File modul JS ini mengontrol seluruh logika interaksi dinamik dan komunikasi AJAX
- * pada Halaman Detail Tugas (app/views/task_detail.php). Memproses pemuatan detail tugas,
- * penanganan status Soft-Delete, render multi-file lampiran (Buka & Download), toggle
- * status penyelesaian tugas, render daftar mahasiswa selesai (dengan opsi privasi),
- * pengelolaan diskusi/komentar publik, serta aksi Edit dan Soft-Delete Tugas.
+ * pada Halaman Detail Tugas (app/views/task_detail.php). Meliputi pemuatan detail tugas,
+ * penanganan status Soft-Delete, render multi-file lampiran grid warna-warni, tombol
+ * "Tandai Selesai" dengan efek invert, daftar mahasiswa selesai dengan proteksi privasi,
+ * alur modal terpadu sharing jawaban (unggah, lihat, dan inline edit dengan dirty tracking),
+ * serta pengelolaan komentar dengan form bergaya Global Chat (edit & hapus komentar).
  * 
- * RELASI DENGAN FILE LAIN (FILE RELATIONS):
- * - Views Consumer: app/views/task_detail.php
- * - API Endpoints:
- *   * GET app/api/tasks.php?action=detail (Ambil Detail, File, Completions, & Komentar)
- *   * POST app/api/tasks.php?action=toggle_completion (Selesai / Batal Selesai)
- *   * POST app/api/tasks.php?action=add_comment (Tambah Komentar Publik)
- *   * POST / PUT app/api/tasks.php (Update Tugas & Tambah File Baru)
- *   * POST / DELETE app/api/tasks.php (Soft-Delete Row DB & Hard-Delete File Server)
- * 
- * LOGIKA & ALUR KERJA (HOW IT WORKS):
- * 1. Inisialisasi & Fetch Detail Tugas:
- *    - Membaca `CURRENT_TASK_ID` global dari view.
- *    - Melakukan fetch GET ke `app/api/tasks.php?action=detail&taskId=CURRENT_TASK_ID`.
- * 
- * 2. Penanganan Proteksi Soft-Delete Item (`deletionStatus === 1`):
- *    - Jika tugas berstatus dihapus, sembunyikan `#main-content-wrapper`.
- *    - Render banner peringatan khusus pada `#alert-container`:
- *      "Tugas ini telah dihapus oleh [userName] pada [timestamp]."
- *    - Mencegah akses ke deskripsi, file lampiran, dan aksi pengeditan/komentar.
- * 
- * 3. Render Detail & Multi-File Lampiran:
- *    - Render judul, matkul, tipe tugas, deadline, dan badge status (Tersedia / Selesai / Telat).
- *    - Render metadata pembuat & editor terakhir (lengkap dengan role level badge).
- *    - Render daftar file lampiran: Setiap file memiliki tombol "Buka" (membuka tab baru via `target="_blank"`)
- *      dan tombol "Download" (mengunduh langsung file via atribut `download`).
- * 
- * 4. Interaksi Toggle "Tandai Selesai":
- *    - Memantau event click pada `#btnToggleComplete`.
- *    - Mengirim POST AJAX ke `tasks.php?action=toggle_completion`.
- *    - Memperbarui teks/warna tombol dan memperbarui daftar mahasiswa selesai secara real-time.
- * 
- * 5. Render Daftar Mahasiswa Selesai & Proteksi Anonim:
- *    - Merender list pengguna yang telah menyelesaikan tugas.
- *    - Jika `hideCompletedIdentity === 1`, ganti avatar dengan default dan tampilkan nama "Mahasiswa Rahasia".
- * 
- * 6. Diskusi / Komentar Publik:
- *    - Merender thread komentar dari `task_comments`.
- *    - Submit `#commentForm` mengirim teks komentar via AJAX POST `tasks.php?action=add_comment`.
- *    - Sisipkan komentar baru ke DOM tanpa reload halaman secara utuh.
- * 
- * 7. Form Handler Edit Tugas & Soft-Delete Task:
- *    - Populate data tugas lama ke dalam modal `#editTaskModal`.
- *    - Form `#formEditTask` mengirim data pembaruan via multipart/form-data (`_method=PUT`).
- *    - Tombol `#btnDeleteTask` memicu konfirmasi `confirm()`. Jika disetujui, kirim request DELETE ke `tasks.php`.
- *    - Proses delete: Baris DB di-soft-delete (`deletionStatus = 1`), file fisik di-hard-delete (`unlink()`), 
- *      poin kontribusiauthor TETAP BERTAHAN (+1).
+ * CATATAN INTEGRITAS:
+ * - DILARANG menggunakan emoji di dalam baris kode PHP, JS, HTML, maupun CSS.
+ * - Tetap menggunakan tabel task_shared_answers dan task_shared_answer_files di database.
  */
 
-document.addEventListener('DOMContentLoaded', function() {
-    
-    // Elemen DOM Container
+document.addEventListener('DOMContentLoaded', function () {
+
+    // Elemen DOM Kontainer
     const skeletonLoader = document.getElementById('skeleton-loader');
     const mainContentWrapper = document.getElementById('main-content-wrapper');
     const alertContainer = document.getElementById('alert-container');
     const backToCourseBtn = document.getElementById('backToCourseBtn');
 
-    // Elemen Data Tugas
-    const courseCodeBadge = document.getElementById('courseCodeBadge');
+    // Elemen Banner Informasi Tugas
+    const taskBannerCard = document.getElementById('taskBannerCard');
+    const taskBannerIcon = document.getElementById('taskBannerIcon');
+    const courseNameTitle = document.getElementById('courseNameTitle');
+    const taskTitle = document.getElementById('taskTitle');
     const taskTypeBadge = document.getElementById('taskTypeBadge');
     const taskStatusBadgeContainer = document.getElementById('taskStatusBadgeContainer');
-    const taskTitle = document.getElementById('taskTitle');
-    const courseNameTitle = document.getElementById('courseNameTitle');
     const taskDeadlineText = document.getElementById('taskDeadlineText');
-    
-    // Elemen Author & Editor
-    const authorAvatar = document.getElementById('authorAvatar');
-    const authorName = document.getElementById('authorName');
-    const authorRoleDate = document.getElementById('authorRoleDate');
-    const editorContainer = document.getElementById('editorContainer');
-    const editorInfo = document.getElementById('editorInfo');
-    
-    // Elemen Deskripsi & File
+    const bannerAuthorInfo = document.getElementById('bannerAuthorInfo');
+    const btnDropdownEditTask = document.getElementById('btnDropdownEditTask');
+    const btnDropdownDeleteTask = document.getElementById('btnDropdownDeleteTask');
+
+    // Elemen Deskripsi & File Grid
     const taskDescription = document.getElementById('taskDescription');
-    const taskFilesContainer = document.getElementById('taskFilesContainer');
-    
-    // Elemen Aksi
+    const taskFilesGrid = document.getElementById('taskFilesGrid');
+    const noFilesText = document.getElementById('noFilesText');
+
+    // Elemen Aksi "Tandai Selesai"
     const btnToggleComplete = document.getElementById('btnToggleComplete');
     const completeBtnText = document.getElementById('completeBtnText');
-    const btnEditTask = document.getElementById('btnEditTask');
-    const btnDeleteTask = document.getElementById('btnDeleteTask');
 
-    // Elemen Completions & Comments
+    // Elemen Mahasiswa yang Telah Selesai & Sharing Jawaban
     const completionCountBadge = document.getElementById('completionCountBadge');
     const completionsList = document.getElementById('completionsList');
+    const btnShareAnswer = document.getElementById('btnShareAnswer');
+
+    // Elemen Komentar (Gaya Global Chat)
     const commentsContainer = document.getElementById('commentsContainer');
     const commentForm = document.getElementById('commentForm');
     const commentContent = document.getElementById('commentContent');
     const btnSubmitComment = document.getElementById('btnSubmitComment');
+    const btnSubmitCommentIcon = document.getElementById('btnSubmitCommentIcon');
+    const btnCancelEditComment = document.getElementById('btnCancelEditComment');
 
-    // Elemen Form Edit
+    // Elemen Modal Edit Tugas
     const formEditTask = document.getElementById('formEditTask');
-    const existingFilesContainer = document.getElementById('editTaskExistingFiles');
+    const editTaskExistingFiles = document.getElementById('editTaskExistingFiles');
+    const editTaskAttachments = document.getElementById('editTaskAttachments');
+    const btnSubmitEditTask = document.getElementById('btnSubmitEditTask');
 
-    // State Global
+    // Elemen Modal Bagikan Jawaban Baru
+    const formShareAnswer = document.getElementById('formShareAnswer');
+    const btnSubmitShareAnswer = document.getElementById('btnSubmitShareAnswer');
+
+    // Elemen Modal Lihat / Edit Jawaban
+    const viewAnswerModalEl = document.getElementById('viewAnswerModal');
+    const modalAnswerAuthorAvatar = document.getElementById('modalAnswerAuthorAvatar');
+    const modalAnswerAuthorName = document.getElementById('modalAnswerAuthorName');
+    const modalAnswerDateMeta = document.getElementById('modalAnswerDateMeta');
+    const btnCopyAnswerLink = document.getElementById('btnCopyAnswerLink');
+    const btnDeleteOwnAnswer = document.getElementById('btnDeleteOwnAnswer');
+    const readOnlyAnswerContent = document.getElementById('readOnlyAnswerContent');
+    const readOnlyAnswerTitle = document.getElementById('readOnlyAnswerTitle');
+    const readOnlyAnswerNotes = document.getElementById('readOnlyAnswerNotes');
+    const readOnlyAnswerFilesGrid = document.getElementById('readOnlyAnswerFilesGrid');
+    const noAnswerFilesText = document.getElementById('noAnswerFilesText');
+    const readOnlyAnswerFooter = document.getElementById('readOnlyAnswerFooter');
+
+    // Elemen Form Edit Jawaban Inline
+    const formEditAnswer = document.getElementById('formEditAnswer');
+    const editAnswerIdHidden = document.getElementById('editAnswerIdHidden');
+    const editAnswerTitleInput = document.getElementById('editAnswerTitleInput');
+    const editAnswerNotesInput = document.getElementById('editAnswerNotesInput');
+    const editAnswerExistingFiles = document.getElementById('editAnswerExistingFiles');
+    const editAnswerNewAttachments = document.getElementById('editAnswerNewAttachments');
+    const btnSaveAnswerEdit = document.getElementById('btnSaveAnswerEdit');
+
+    // State Internal Modul
     let isTaskCompletedByUser = false;
+    let mySharedAnswerId = null;
+    let currentlyViewingAnswerId = null;
+    let initialAnswerTitle = '';
+    let initialAnswerNotes = '';
+    let editingCommentId = null;
 
-    // 1. Inisialisasi & Fetch Detail Tugas
+    // ====================================================================================
+    // 1. UTILITAS FORMATTER & HELPER
+    // ====================================================================================
+
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe.toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function formatIndoDate(dateString) {
+        if (!dateString) return '-';
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        const date = new Date(dateString.replace(/-/g, '/'));
+        if (isNaN(date.getTime())) return dateString;
+        const d = date.getDate();
+        const m = months[date.getMonth()];
+        const y = date.getFullYear();
+        const hh = String(date.getHours()).padStart(2, '0');
+        const mm = String(date.getMinutes()).padStart(2, '0');
+        return `${d} ${m} ${y}, ${hh}.${mm}`;
+    }
+
+    function formatFileSize(bytes) {
+        const size = Number(bytes || 0);
+        if (size <= 0) return '0 KB';
+        if (size < 1024 * 1024) {
+            return `${(size / 1024).toFixed(1)} KB`;
+        }
+        return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+    }
+
+    function truncateUsername(name, maxLen = 20) {
+        if (!name) return 'Pengguna';
+        return name.length > maxLen ? name.substring(0, maxLen) + '...' : name;
+    }
+
+    function resolveAssetUrl(path) {
+        if (!path) return `${BASE_URL}public/assets/img/logo.png`;
+        return /^(https?:)?\/\//i.test(path) ? path : `${BASE_URL}${path}`;
+    }
+
+    function roleBadgeCompactHtml(role) {
+        if (role === 'Primordial') {
+            return '<span class="badge" style="background: linear-gradient(135deg, #be9d30, #ffd13b, #aa771c); color: #ffffff; font-size: 0.6rem; font-weight: 600; padding: 2px 5px;">Primordial</span>';
+        }
+        if (role === 'Sepuh') {
+            return '<span class="badge bg-secondary text-white" style="font-size: 0.6rem; padding: 2px 5px;">Sepuh</span>';
+        }
+        return '<span class="text-muted" style="font-size: 0.65rem;">Keroco</span>';
+    }
+
+    function getFileIconMeta(fileName) {
+        const ext = (fileName || '').split('.').pop().toLowerCase();
+        switch (ext) {
+            case 'pdf':
+                return { icon: 'bi-file-earmark-pdf-fill', color: '#dc3545', label: 'PDF' };
+            case 'doc':
+            case 'docx':
+                return { icon: 'bi-file-earmark-word-fill', color: '#0d6efd', label: 'Word' };
+            case 'xls':
+            case 'xlsx':
+                return { icon: 'bi-file-earmark-excel-fill', color: '#198754', label: 'Excel' };
+            case 'ppt':
+            case 'pptx':
+                return { icon: 'bi-file-earmark-ppt-fill', color: '#fd7e14', label: 'PowerPoint' };
+            case 'zip':
+            case 'rar':
+            case '7z':
+            case 'tar':
+            case 'gz':
+                return { icon: 'bi-file-earmark-zip-fill', color: '#ffc107', label: 'Arsip' };
+            default:
+                return { icon: 'bi-file-earmark-text-fill', color: '#6c757d', label: 'Dokumen' };
+        }
+    }
+
+    function linkifyDescription(value) {
+        const pattern = /https?:\/\/[^\s<]+/gi;
+        let html = '';
+        let lastIndex = 0;
+        for (const match of value.matchAll(pattern)) {
+            html += escapeHtml(value.slice(lastIndex, match.index));
+            const url = match[0];
+            const safeUrl = escapeHtml(url);
+            html += `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`;
+            lastIndex = match.index + url.length;
+        }
+        return html + escapeHtml(value.slice(lastIndex));
+    }
+
+    function formatRemainingCountdown(diffMs) {
+        if (diffMs <= 0) return 'Tenggat terlewat';
+        const totalMinutes = Math.floor(diffMs / (1000 * 60));
+        const totalHours = Math.floor(totalMinutes / 60);
+        const days = Math.floor(totalHours / 24);
+        const hours = totalHours % 24;
+        const minutes = totalMinutes % 60;
+
+        if (days > 0) return `Sisa ${days} hari ${hours} jam`;
+        if (hours > 0) return `Sisa ${hours} jam ${minutes} menit`;
+        return `Sisa ${minutes} menit`;
+    }
+
+    // ====================================================================================
+    // 2. PEMUATAN DETAIL TUGAS UTAMA
+    // ====================================================================================
+
     function loadTaskDetail() {
         fetch(`${BASE_URL}app/api/tasks.php?action=detail&taskId=${CURRENT_TASK_ID}`)
             .then(response => response.json())
@@ -115,18 +219,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 skeletonLoader.classList.add('d-none');
 
                 if (!res.success || !res.data) {
-                    alertContainer.innerHTML = `<div class="alert alert-danger fw-bold">Gagal memuat detail tugas: ${escapeHtml(res.message || 'Data tidak ditemukan.')}</div>`;
+                    alertContainer.innerHTML = `<div class="alert alert-danger fw-bold rounded-4">Gagal memuat detail tugas: ${escapeHtml(res.message || 'Data tidak ditemukan.')}</div>`;
                     return;
                 }
 
                 const task = res.data.task;
-                const files = res.data.files;
-                const completions = res.data.completions;
-                const comments = res.data.comments;
+                const files = res.data.files || [];
+                const completions = res.data.completions || [];
+                const comments = res.data.comments || [];
                 const canEdit = res.data.canEdit;
-                isTaskCompletedByUser = res.data.isCompleted;
+                isTaskCompletedByUser = Boolean(res.data.isCompleted);
+                mySharedAnswerId = res.data.mySharedAnswerId ? Number(res.data.mySharedAnswerId) : null;
 
-                // Set Tombol Back Contextual (Dashboard / Daftar Tugas Global vs Detail Course)
+                // Penanganan Tombol Back Kontekstual
                 const urlParams = new URLSearchParams(window.location.search);
                 const navFrom = urlParams.get('from');
                 const navFilter = urlParams.get('filter') || 'all';
@@ -143,243 +248,177 @@ document.addEventListener('DOMContentLoaded', function() {
                 const cameFromGlobalList = navFrom === 'global' || referrerIsGlobalList;
                 const cameFromDashboard = navFrom === 'dashboard';
 
-                if (cameFromDashboard) {
-                    if (backToCourseBtn) {
+                if (backToCourseBtn) {
+                    if (cameFromDashboard) {
                         backToCourseBtn.href = `${BASE_URL}dashboard`;
-                        backToCourseBtn.innerHTML = `<i class="bi bi-arrow-left me-1"></i> Kembali`;
-                    }
-                } else if (cameFromGlobalList) {
-                    let backUrl = `${BASE_URL}tasks?filter=${encodeURIComponent(navFilter)}`;
-                    if (navSearch) backUrl += `&search=${encodeURIComponent(navSearch)}`;
-                    if (backToCourseBtn) {
+                    } else if (cameFromGlobalList) {
+                        let backUrl = `${BASE_URL}tasks?filter=${encodeURIComponent(navFilter)}`;
+                        if (navSearch) backUrl += `&search=${encodeURIComponent(navSearch)}`;
                         backToCourseBtn.href = backUrl;
-                        backToCourseBtn.innerHTML = `<i class="bi bi-arrow-left me-1"></i> Kembali`;
-                    }
-                } else {
-                    if (backToCourseBtn) {
+                    } else {
                         backToCourseBtn.href = `${BASE_URL}course-detail?id=${task.courseId}&tab=tasks`;
-                        backToCourseBtn.innerHTML = `<i class="bi bi-arrow-left me-1"></i> Kembali`;
-                        backToCourseBtn.onclick = function() {
+                        backToCourseBtn.onclick = function () {
                             sessionStorage.setItem(`course_restore_scroll_${task.courseId}`, '1');
                         };
                     }
                 }
 
-                // 2. Penanganan Proteksi Soft-Delete Item
+                // Penanganan Soft-Delete Item
                 if (parseInt(task.deletionStatus) === 1) {
                     alertContainer.innerHTML = `
-                        <div class="alert alert-danger border-danger shadow-sm">
+                        <div class="alert alert-danger border-danger shadow-sm rounded-4">
                             <h5 class="alert-heading fw-bold">Akses Diblokir</h5>
-                            <p class="mb-0">Tugas ini telah dihapus oleh <strong>${escapeHtml(task.deletedByUserName || 'Sistem')}</strong> pada <strong>${formatDate(task.deletedAt)}</strong>.</p>
+                            <p class="mb-0">Tugas ini telah dihapus oleh <strong>${escapeHtml(task.deletedByUserName || 'Sistem')}</strong> pada <strong>${formatIndoDate(task.deletedAt)}</strong>.</p>
                         </div>
                     `;
-                    return; // Hentikan eksekusi, main content tetap d-none
+                    return;
                 }
 
-                // Tampilkan Konten Utama jika tidak dihapus
                 mainContentWrapper.classList.remove('d-none');
 
-                // 3. Render Detail Header
-                courseCodeBadge.textContent = task.courseCode || 'Matkul';
-                taskTypeBadge.textContent = task.taskType || 'Tugas';
+                // Render Banner Card Informasi Tugas
+                courseNameTitle.textContent = task.courseTitle ? `${task.courseCode || ''} - ${task.courseTitle}` : (task.courseCode || '');
                 taskTitle.textContent = task.taskTitle;
-                courseNameTitle.textContent = task.courseTitle;
                 
-                // Cek Status Deadline
+                if (task.taskType && task.taskType.trim().toLowerCase() !== 'tugas') {
+                    taskTypeBadge.textContent = task.taskType;
+                    taskTypeBadge.classList.remove('d-none');
+                } else {
+                    taskTypeBadge.classList.add('d-none');
+                }
+
+                // Status Waktu & Deadline
                 const now = new Date();
-                const dueDate = new Date(task.dueDate);
-                let badgeColor = 'primary';
-                let statusText = 'Tersedia';
-                
+                const dueDate = task.dueDate ? new Date(task.dueDate.replace(/-/g, '/')) : null;
+                const isMissed = !isTaskCompletedByUser && dueDate && (dueDate < now);
+
+                let statusBadgeHtml = '';
+                let borderLeftColor = '#ffc107';
+
                 if (isTaskCompletedByUser) {
-                    badgeColor = 'success';
-                    statusText = 'Selesai';
-                } else if (dueDate < now) {
-                    badgeColor = 'danger';
-                    statusText = 'Telat';
-                }
-
-                taskStatusBadgeContainer.innerHTML = `<span class="badge bg-${badgeColor} fs-6">${statusText}</span>`;
-                taskDeadlineText.innerHTML = `Tenggat: ${formatDate(task.dueDate)}`;
-
-                // Render Pembuat Tugas
-                authorAvatar.src = resolveAssetUrl(task.authorAvatar);
-                authorAvatar.onerror = function() { this.src = `${BASE_URL}public/assets/img/logo.png`; };
-                authorName.textContent = task.authorName || 'Pengguna Nonaktif';
-                authorRoleDate.innerHTML = `${task.authorRole ? roleBadgeHtml(task.authorRole) : ''} Dibuat: ${formatDate(task.createdAt)}`;
-
-                // Render Editor Terakhir (Jika ada)
-                if (task.lastEditedByUserId) {
-                    editorContainer.classList.remove('d-none');
-                    editorInfo.textContent = `Terakhir diubah oleh ${task.editorName} pada ${formatDate(task.updatedAt)}`;
-                }
-
-                // Render Deskripsi
-                taskDescription.innerHTML = linkifyDescription(task.taskDescription || 'Tidak ada deskripsi.');
-
-                // Render File Lampiran
-                if (files && files.length > 0) {
-                    let filesHtml = '';
-                    files.forEach(f => {
-                        const fileUrl = /^https?:\/\//i.test(f.filePath) ? f.filePath : `${BASE_URL}${f.filePath}`;
-                        let downloadUrl = fileUrl;
-                        const driveMatch = f.filePath ? f.filePath.match(/\/d\/([a-zA-Z0-9_-]+)/) : null;
-                        if (driveMatch && driveMatch[1]) {
-                            downloadUrl = `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
-                        }
-                        filesHtml += `
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div class="text-truncate me-3">
-                                    <i class="bi bi-file-earmark-text me-2 text-primary"></i>
-                                    <span>${escapeHtml(f.fileName)}</span>
-                                    <small class="text-muted ms-2 d-none d-md-inline">(${(f.fileSize / 1024).toFixed(2)} KB)</small>
-                                </div>
-                                <div class="btn-group btn-group-sm flex-shrink-0">
-                                    <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">Buka</a>
-                                    <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" download="${escapeHtml(f.fileName)}" class="btn btn-primary">Download</a>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    taskFilesContainer.innerHTML = filesHtml;
+                    statusBadgeHtml = '<span class="badge bg-success text-white rounded-pill px-3 py-1 fw-medium align-middle"><i class="bi bi-check2-circle me-1"></i>Selesai</span>';
+                    borderLeftColor = '#198754';
+                } else if (isMissed) {
+                    statusBadgeHtml = '<span class="badge bg-danger text-white rounded-pill px-3 py-1 fw-bold align-middle shadow-sm"><i class="bi bi-exclamation-triangle-fill me-1"></i>Terlewat</span>';
+                    borderLeftColor = '#dc3545';
                 } else {
-                    taskFilesContainer.innerHTML = `<div class="text-muted fst-italic p-2">Tidak ada lampiran file.</div>`;
+                    statusBadgeHtml = '<span class="badge bg-warning text-dark rounded-pill px-3 py-1 fw-medium align-middle"><i class="bi bi-clock-history me-1"></i>Pending</span>';
+                    borderLeftColor = '#ffc107';
                 }
-                renderEditableFiles(files || []);
 
-                // Pengaturan Tombol Edit & Hapus (Otorisasi)
-                if (!canEdit) {
-                    btnEditTask.classList.add('d-none');
-                    btnDeleteTask.classList.add('d-none');
-                } else {
-                    btnEditTask.classList.remove('d-none');
-                    btnDeleteTask.classList.remove('d-none');
-                    
-                    // Populate Form Edit
+                taskStatusBadgeContainer.innerHTML = statusBadgeHtml;
+                taskBannerCard.style.setProperty('border-left', `5px solid ${borderLeftColor}`, 'important');
+
+                let deadlineDisplay = `Tenggat: ${formatIndoDate(task.dueDate)}`;
+                if (dueDate && !isTaskCompletedByUser && !isMissed) {
+                    const diffMs = dueDate.getTime() - now.getTime();
+                    deadlineDisplay += ` <span class="text-secondary fw-normal">(${formatRemainingCountdown(diffMs)})</span>`;
+                }
+                taskDeadlineText.innerHTML = deadlineDisplay;
+
+                // Informasi Pembuat di Bagian Bawah Banner
+                bannerAuthorInfo.innerHTML = `Ditambahkan oleh ${escapeHtml(task.authorName || 'Pengguna Nonaktif')} pada ${formatIndoDate(task.createdAt)}`;
+
+                // Pengaturan Tombol Edit & Hapus Banner
+                if (canEdit) {
+                    if (btnDropdownEditTask) btnDropdownEditTask.classList.remove('d-none');
+                    if (btnDropdownDeleteTask) btnDropdownDeleteTask.classList.remove('d-none');
+
                     document.getElementById('editCourseId').value = task.courseId;
                     document.getElementById('editTaskTitle').value = task.taskTitle;
-                    // Format datetime-local: YYYY-MM-DDThh:mm
                     if (task.dueDate) {
                         const localDate = new Date(task.dueDate);
                         localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
                         document.getElementById('editDueDate').value = localDate.toISOString().slice(0, 16);
                     }
-                    document.getElementById('editTaskDescription').value = task.taskDescription;
+                    document.getElementById('editTaskDescription').value = task.taskDescription || '';
+                } else {
+                    if (btnDropdownEditTask) btnDropdownEditTask.classList.add('d-none');
+                    if (btnDropdownDeleteTask) btnDropdownDeleteTask.classList.add('d-none');
                 }
 
-                // Render UI Toggle Selesai
-                updateCompletionBtnUI();
+                // Render Deskripsi
+                taskDescription.innerHTML = linkifyDescription(task.taskDescription || 'Tidak ada deskripsi.');
 
-                // Render Daftar Selesai & Komentar
+                // Render Grid Lampiran File
+                renderTaskFilesGrid(files);
+                renderTaskEditableFiles(files);
+
+                // Render Tombol "Tandai Selesai" & "Bagikan Jawaban"
+                updateToggleCompleteButtonUI();
+                updateShareAnswerButtonUI();
+
+                // Render Daftar Mahasiswa Selesai & Komentar
                 renderCompletions(completions);
                 renderComments(comments);
             })
             .catch(err => {
                 skeletonLoader.classList.add('d-none');
                 console.error('Error fetching task details:', err);
-                alertContainer.innerHTML = `<div class="alert alert-danger">Terjadi kesalahan koneksi saat memuat detail tugas.</div>`;
+                alertContainer.innerHTML = '<div class="alert alert-danger rounded-4">Terjadi kesalahan koneksi saat memuat detail tugas.</div>';
             });
     }
 
-    // 4. Update UI Tombol Toggle Selesai
-    function updateCompletionBtnUI() {
-        if (isTaskCompletedByUser) {
-            btnToggleComplete.classList.remove('btn-success');
-            btnToggleComplete.classList.add('btn-outline-danger');
-            completeBtnText.textContent = 'Batal Selesai';
-        } else {
-            btnToggleComplete.classList.remove('btn-outline-danger');
-            btnToggleComplete.classList.add('btn-success');
-            completeBtnText.textContent = 'Tandai Selesai';
-        }
-    }
+    // ====================================================================================
+    // 3. GRID LAMPIRAN FILE
+    // ====================================================================================
 
-    btnToggleComplete.addEventListener('click', function() {
-        btnToggleComplete.disabled = true;
-        
-        let formData = new FormData();
-        formData.append('action', 'toggle_completion');
-        formData.append('taskId', CURRENT_TASK_ID);
-
-        fetch(`${BASE_URL}app/api/tasks.php`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(res => {
-            if (res.success) {
-                    isTaskCompletedByUser = Boolean(res.isCompleted);
-                    updateCompletionBtnUI();
-                    refreshTaskPeople();
-            } else {
-                window.appToast?.('Gagal mengubah status: ' + res.message, 'danger');
-            }
-        })
-        .catch(err => {
-            console.error('Toggle Error:', err);
-            window.appToast?.('Terjadi kesalahan koneksi.', 'danger');
-        })
-        .finally(() => {
-            btnToggleComplete.disabled = false;
-        });
-    });
-
-    function refreshTaskPeople() {
-        fetch(`${BASE_URL}app/api/tasks.php?action=detail&taskId=${CURRENT_TASK_ID}`)
-            .then(response => response.json())
-            .then(res => {
-                if (!res.success || !res.data) return;
-                isTaskCompletedByUser = Boolean(res.data.isCompleted);
-                updateCompletionBtnUI();
-                renderCompletions(res.data.completions || []);
-                renderComments(res.data.comments || []);
-            })
-            .catch(error => console.error('Task list refresh failed:', error));
-    }
-
-    // 5. Render Daftar Mahasiswa Selesai (Proteksi Anonim)
-    function renderCompletions(completions) {
-        completionCountBadge.textContent = completions ? completions.length : 0;
-        
-        if (!completions || completions.length === 0) {
-            completionsList.innerHTML = `<li class="list-group-item text-muted text-center py-4 fst-italic">Belum ada yang menyelesaikan tugas ini.</li>`;
+    function renderTaskFilesGrid(files) {
+        const taskFilesDivider = document.getElementById('taskFilesDivider');
+        if (!files || files.length === 0) {
+            taskFilesGrid.innerHTML = '';
+            if (noFilesText) noFilesText.classList.add('d-none');
+            if (taskFilesDivider) taskFilesDivider.classList.add('d-none');
             return;
         }
 
-        let html = '';
-        completions.forEach(c => {
-            const isAnonymous = parseInt(c.hideCompletedIdentity) === 1;
-            const displayName = isAnonymous ? 'Mahasiswa Rahasia' : escapeHtml(c.userName);
-            const displayAvatar = isAnonymous || !c.avatarUrl ? `${BASE_URL}public/assets/img/logo.png` : resolveAssetUrl(c.avatarUrl);
+        if (noFilesText) noFilesText.classList.add('d-none');
+        if (taskFilesDivider) taskFilesDivider.classList.remove('d-none');
 
-            html += `
-                <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2">
-                    <div class="d-flex align-items-center">
-                        <img src="${displayAvatar}" class="rounded-circle border me-3" style="width: 35px; height: 35px; object-fit: cover;" alt="Avatar">
-                        <div>
-                            <div class="fw-bold fs-6" style="line-height: 1.2;">${displayName}</div>
-                            <small class="text-muted" style="font-size: 0.75rem;">${isAnonymous ? '' : roleBadgeHtml(c.roleLevel)}</small>
-                        </div>
+        taskFilesGrid.innerHTML = files.map(file => {
+            const fileUrl = /^https?:\/\//i.test(file.filePath) ? file.filePath : `${BASE_URL}${encodeURI(file.filePath)}`;
+            let downloadUrl = fileUrl;
+            const driveMatch = file.filePath ? file.filePath.match(/\/d\/([a-zA-Z0-9_-]+)/) : null;
+            if (driveMatch && driveMatch[1]) {
+                downloadUrl = `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
+            }
+
+            const meta = getFileIconMeta(file.fileName);
+
+            return `
+                <div class="col">
+                    <div class="card border-0 shadow-none bg-transparent rounded-3 p-2 text-center h-100 position-relative file-grid-card">
+                        <a href="${downloadUrl}" download="${escapeHtml(file.fileName)}" class="btn btn-sm btn-light border-0 rounded-circle position-absolute top-0 end-0 m-1 p-0 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;" title="Unduh File" onclick="event.stopPropagation();">
+                            <i class="bi bi-download text-secondary" style="font-size: 1.0rem;"></i>
+                        </a>
+
+                        <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" class="text-decoration-none d-block py-1">
+                            <div class="my-1">
+                                <i class="bi ${meta.icon}" style="font-size: 2.0rem; color: ${meta.color};"></i>
+                            </div>
+                            <div class="fw-semibold text-dark text-truncate small mt-1 px-1" title="${escapeHtml(file.fileName)}" style="font-size: 0.8rem;">
+                                ${escapeHtml(file.fileName)}
+                            </div>
+                            <small class="text-muted d-block mt-0.5" style="font-size: 0.7rem;">
+                                ${formatFileSize(file.fileSize)}
+                            </small>
+                        </a>
                     </div>
-                    <div class="text-muted text-end" style="font-size: 0.75rem;">
-                        Selesai:<br>${formatDate(c.completedAt)}
-                    </div>
-                </li>
+                </div>
             `;
-        });
-        completionsList.innerHTML = html;
+        }).join('');
     }
 
-    function renderEditableFiles(files) {
-        if (!existingFilesContainer) return;
-        existingFilesContainer.innerHTML = files.length ? files.map(file => `
-            <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
-                <span class="text-truncate">${escapeHtml(file.fileName)}</span>
-                <button type="button" class="btn btn-sm btn-outline-danger" data-delete-task-file="${Number(file.fileId)}">Hapus</button>
+    function renderTaskEditableFiles(files) {
+        if (!editTaskExistingFiles) return;
+        editTaskExistingFiles.innerHTML = files.length ? files.map(file => `
+            <div class="list-group-item d-flex align-items-center justify-content-between gap-2 border-0 bg-light rounded-3 mb-1">
+                <span class="text-truncate small">${escapeHtml(file.fileName)}</span>
+                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" data-delete-task-file="${Number(file.fileId)}">Hapus</button>
             </div>`).join('') : '<div class="text-muted small">Tidak ada lampiran saat ini.</div>';
     }
 
-    existingFilesContainer?.addEventListener('click', async event => {
+    editTaskExistingFiles?.addEventListener('click', async event => {
         const button = event.target.closest('[data-delete-task-file]');
         if (!button || !await window.appConfirm('Hapus lampiran ini secara permanen?')) return;
         button.disabled = true;
@@ -397,44 +436,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 6. Diskusi / Komentar Publik
-    function renderComments(comments) {
-        if (!comments || comments.length === 0) {
-            commentsContainer.innerHTML = `<div class="text-muted text-center py-4 fst-italic">Belum ada diskusi. Jadilah yang pertama berkomentar!</div>`;
-            return;
-        }
+    // ====================================================================================
+    // 4. TOMBOL "TANDAI SELESAI" (EFEK INVERTED HOVER)
+    // ====================================================================================
 
-        let html = '';
-        comments.forEach(c => {
-            const avatar = resolveAssetUrl(c.avatarUrl);
-            html += `
-                <div class="d-flex p-3 bg-light rounded border-start border-4 border-secondary">
-                    <img src="${avatar}" class="rounded-circle me-3 border" style="width: 40px; height: 40px; object-fit: cover;" alt="Avatar">
-                    <div class="w-100">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-bold">${escapeHtml(c.userName)} ${roleBadgeHtml(c.roleLevel)}</span>
-                            <small class="text-muted" style="font-size: 0.75rem;">${formatDate(c.createdAt)}</small>
-                        </div>
-                        <div class="text-break" style="font-size: 0.9rem; white-space: pre-wrap;">${escapeHtml(c.commentContent)}</div>
-                    </div>
-                </div>
-            `;
-        });
-        commentsContainer.innerHTML = html;
+    function updateToggleCompleteButtonUI() {
+        if (!btnToggleComplete) return;
+
+        if (isTaskCompletedByUser) {            
+            completeBtnText.textContent = 'Batal Selesai';
+        } else {            
+            completeBtnText.textContent = 'Tandai Selesai';
+        }
     }
 
-    commentForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const content = commentContent.value.trim();
-        if (content === '') return;
+    btnToggleComplete.addEventListener('click', function () {
+        btnToggleComplete.disabled = true;
 
-        btnSubmitComment.disabled = true;
-        btnSubmitComment.textContent = 'Mengirim...';
-
-        let formData = new FormData();
-        formData.append('action', 'add_comment');
+        const formData = new FormData();
+        formData.append('action', 'toggle_completion');
         formData.append('taskId', CURRENT_TASK_ID);
-        formData.append('commentContent', content);
 
         fetch(`${BASE_URL}app/api/tasks.php`, {
             method: 'POST',
@@ -443,60 +464,662 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(res => {
             if (res.success) {
-                commentContent.value = '';
-                loadTaskDetail(); // Reload comments
+                isTaskCompletedByUser = Boolean(res.isCompleted);
+                updateToggleCompleteButtonUI();
+                updateShareAnswerButtonUI();
+                loadTaskDetail();
             } else {
-                window.appToast?.('Gagal mengirim komentar: ' + res.message, 'danger');
+                window.appToast?.('Gagal mengubah status: ' + res.message, 'danger');
+            }
+        })
+        .catch(err => {
+            console.error('Toggle Error:', err);
+            window.appToast?.('Terjadi kesalahan koneksi.', 'danger');
+        })
+        .finally(() => {
+            btnToggleComplete.disabled = false;
+        });
+    });
+
+    // ====================================================================================
+    // 5. MAHASISWA YANG TELAH SELESAI
+    // ====================================================================================
+
+    function renderCompletions(completions) {
+        if (!completionCountBadge || !completionsList) return;
+
+        const count = completions ? completions.length : 0;
+        if (count > 0) {
+            completionCountBadge.textContent = count;
+            completionCountBadge.classList.remove('d-none');
+        } else {
+            completionCountBadge.classList.add('d-none');
+        }
+
+        if (!completions || completions.length === 0) {
+            completionsList.innerHTML = '<li class="list-group-item text-muted text-center py-4 fst-italic border-0">Belum ada mahasiswa yang menyelesaikan tugas ini.</li>';
+            return;
+        }
+
+        completionsList.innerHTML = completions.map((c, idx) => {
+            const isAnonymous = parseInt(c.hideCompletedIdentity) === 1;
+            const rawName = isAnonymous ? 'Mahasiswa Rahasia' : (c.userName || 'Pengguna Nonaktif');
+            const truncatedName = truncateUsername(rawName, 20);
+            const avatarUrl = (isAnonymous || !c.avatarUrl) ? `${BASE_URL}public/assets/img/logo.png` : resolveAssetUrl(c.avatarUrl);
+            const roleBadge = isAnonymous ? '' : roleBadgeCompactHtml(c.roleLevel);
+            const answerBtn = c.answerId ? `
+                <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold" data-view-answer-id="${c.answerId}">
+                    Lihat Jawaban
+                </button>
+            ` : '';
+            const borderClass = idx < completions.length - 1 ? 'border-bottom border-light-subtle' : '';
+
+            return `
+                <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2.5 border-0 ${borderClass}">
+                    <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
+                        <img src="${avatarUrl}" class="rounded-circle border flex-shrink-0" style="width: 34px; height: 34px; object-fit: cover;" alt="Avatar" onerror="this.src='${BASE_URL}public/assets/img/logo.png'">
+                        <div class="overflow-hidden">
+                            <div class="fw-semibold text-dark text-truncate small" title="${escapeHtml(rawName)}">
+                                ${escapeHtml(truncatedName)}
+                            </div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                ${roleBadge}
+                                <span class="text-muted" style="font-size: 0.72rem;"> ${formatIndoDate(c.completedAt)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        ${answerBtn}
+                    </div>
+                </li>
+            `;
+        }).join('');
+    }
+
+    // ====================================================================================
+    // 6. TOMBOL "BAGIKAN JAWABAN" & ALUR MODAL
+    // ====================================================================================
+
+    function updateShareAnswerButtonUI() {
+        if (!btnShareAnswer) return;
+
+        if (!isTaskCompletedByUser) {
+            btnShareAnswer.disabled = true;
+            btnShareAnswer.title = 'Tandai tugas ini selesai terlebih dahulu untuk membagikan jawaban.';
+            btnShareAnswer.className = 'btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold w-100';
+            btnShareAnswer.textContent = 'Bagikan Jawaban';
+            return;
+        }
+
+        btnShareAnswer.disabled = false;
+        btnShareAnswer.removeAttribute('title');
+
+        if (mySharedAnswerId) {       
+            btnShareAnswer.textContent = 'Batal bagikan jawaban';
+        } else {         
+            btnShareAnswer.textContent = 'Bagikan Jawaban';
+        }
+    }
+
+    btnShareAnswer?.addEventListener('click', async function () {
+        if (!isTaskCompletedByUser) {
+            window.appToast?.('Anda harus menandai tugas selesai terlebih dahulu.', 'warning');
+            return;
+        }
+
+        if (mySharedAnswerId) {
+            // Aksi membatalkan pembagian jawaban
+            if (!await window.appConfirm('Batalkan pembagian jawaban dan hapus jawaban Anda secara permanen?')) return;
+            btnShareAnswer.disabled = true;
+
+            fetch(`${BASE_URL}app/api/task_answers.php`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answerId: mySharedAnswerId })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    window.appToast?.('Jawaban berhasil dibatalkan.', 'success');
+                    mySharedAnswerId = null;
+                    loadTaskDetail();
+                } else {
+                    window.appToast?.(result.message || 'Gagal membatalkan jawaban.', 'danger');
+                    btnShareAnswer.disabled = false;
+                }
+            })
+            .catch(err => {
+                console.error('Cancel share answer error:', err);
+                window.appToast?.('Terjadi kesalahan koneksi.', 'danger');
+                btnShareAnswer.disabled = false;
+            });
+        } else {
+            // Membuka modal bagikan jawaban baru
+            formShareAnswer.reset();
+            const shareModal = new bootstrap.Modal(document.getElementById('shareAnswerModal'));
+            shareModal.show();
+        }
+    });
+
+    // Submit Form Bagikan Jawaban Baru
+    formShareAnswer?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const submitBtn = btnSubmitShareAnswer;
+        const formData = new FormData(formShareAnswer);
+
+        window.uploadWithProgress(`${BASE_URL}app/api/task_answers.php`, formData, submitBtn)
+            .then(result => {
+                if (result.success) {
+                    window.appToast?.('Jawaban berhasil dibagikan.', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('shareAnswerModal'))?.hide();
+                    formShareAnswer.reset();
+                    loadTaskDetail();
+                } else {
+                    window.appToast?.(result.message || 'Gagal membagikan jawaban.', 'danger');
+                }
+            })
+            .catch(err => {
+                console.error('Share answer submit error:', err);
+                window.appToast?.('Terjadi kesalahan server.', 'danger');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Bagikan Jawaban';
+            });
+    });
+
+    // ====================================================================================
+    // 7. MODAL "LIHAT JAWABAN" & INLINE EDIT MODE (DENGAN DIRTY CHECKING)
+    // ====================================================================================
+
+    document.addEventListener('click', function (e) {
+        const viewBtn = e.target.closest('[data-view-answer-id]');
+        if (viewBtn) {
+            const answerId = Number(viewBtn.dataset.viewAnswerId);
+            openAnswerDetailModal(answerId);
+        }
+    });
+
+    function openAnswerDetailModal(answerId) {
+        currentlyViewingAnswerId = answerId;
+        const modal = new bootstrap.Modal(viewAnswerModalEl);
+        modal.show();
+
+        fetch(`${BASE_URL}app/api/task_answers.php?action=detail&answerId=${answerId}`)
+            .then(res => res.json())
+            .then(res => {
+                if (!res.success || !res.data) {
+                    window.appToast?.(res.message || 'Gagal memuat jawaban.', 'danger');
+                    modal.hide();
+                    return;
+                }
+
+                const answer = res.data.answer;
+                const files = res.data.files || [];
+                const canEdit = Boolean(res.data.canEdit);
+
+                // Header Pengunggah Jawaban
+                modalAnswerAuthorAvatar.src = resolveAssetUrl(answer.avatarUrl);
+                modalAnswerAuthorName.textContent = truncateUsername(answer.userName, 20);
+                modalAnswerDateMeta.innerHTML = `${roleBadgeCompactHtml(answer.roleLevel)} <span class="ms-1">${formatIndoDate(answer.createdAt)}</span>`;
+
+                // Opsi Dropdown Titik Tiga
+                if (canEdit) {
+                    btnDeleteOwnAnswer.classList.remove('d-none');
+                } else {
+                    btnDeleteOwnAnswer.classList.add('d-none');
+                }
+
+                if (canEdit) {
+                    // Mode Edit Otomatis untuk Jawaban Milik Sendiri
+                    readOnlyAnswerContent.classList.add('d-none');
+                    readOnlyAnswerFooter.classList.add('d-none');
+                    formEditAnswer.classList.remove('d-none');
+
+                    editAnswerIdHidden.value = answer.answerId;
+                    editAnswerTitleInput.value = answer.answerTitle || '';
+                    editAnswerNotesInput.value = answer.answerNotes || '';
+                    editAnswerNewAttachments.value = '';
+
+                    initialAnswerTitle = (answer.answerTitle || '').trim();
+                    initialAnswerNotes = (answer.answerNotes || '').trim();
+
+                    // Render File Lampiran yang Sudah Ada
+                    renderAnswerExistingFiles(files);
+
+                    // Reset Status Tombol Simpan
+                    btnSaveAnswerEdit.disabled = true;
+                } else {
+                    // Mode Read-Only untuk Jawaban Milik Mahasiswa Lain
+                    formEditAnswer.classList.add('d-none');
+                    readOnlyAnswerContent.classList.remove('d-none');
+                    readOnlyAnswerFooter.classList.remove('d-none');
+
+                    readOnlyAnswerTitle.textContent = answer.answerTitle;
+                    readOnlyAnswerNotes.innerHTML = linkifyDescription(answer.answerNotes || 'Tidak ada catatan tambahan.');
+
+                    // Render File Grid Read-Only
+                    renderAnswerReadOnlyFilesGrid(files);
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching answer detail:', err);
+                window.appToast?.('Terjadi kesalahan koneksi.', 'danger');
+                modal.hide();
+            });
+    }
+
+    // Render Grid File Jawaban Read-Only
+    function renderAnswerReadOnlyFilesGrid(files) {
+        if (!files || files.length === 0) {
+            readOnlyAnswerFilesGrid.innerHTML = '';
+            noAnswerFilesText.classList.remove('d-none');
+            return;
+        }
+
+        noAnswerFilesText.classList.add('d-none');
+
+        readOnlyAnswerFilesGrid.innerHTML = files.map(file => {
+            const fileUrl = /^https?:\/\//i.test(file.filePath) ? file.filePath : `${BASE_URL}${encodeURI(file.filePath)}`;
+            let downloadUrl = fileUrl;
+            const driveMatch = file.filePath ? file.filePath.match(/\/d\/([a-zA-Z0-9_-]+)/) : null;
+            if (driveMatch && driveMatch[1]) {
+                downloadUrl = `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
+            }
+
+            const meta = getFileIconMeta(file.fileName);
+
+            return `
+                <div class="col">
+                    <div class="card border-0 shadow-none bg-transparent rounded-3 p-2 text-center h-100 position-relative file-grid-card">
+                        <a href="${downloadUrl}" download="${escapeHtml(file.fileName)}" class="btn btn-sm btn-light border-0 rounded-circle position-absolute top-0 end-0 m-1 p-0 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;" title="Unduh File" onclick="event.stopPropagation();">
+                            <i class="bi bi-download text-secondary" style="font-size: 0.75rem;"></i>
+                        </a>
+
+                        <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" class="text-decoration-none d-block py-1">
+                            <div class="my-1">
+                                <i class="bi ${meta.icon}" style="font-size: 1.75rem; color: ${meta.color};"></i>
+                            </div>
+                            <div class="fw-semibold text-dark text-truncate small mt-1 px-1" title="${escapeHtml(file.fileName)}" style="font-size: 0.8rem;">
+                                ${escapeHtml(file.fileName)}
+                            </div>
+                            <small class="text-muted d-block mt-0.5" style="font-size: 0.7rem;">
+                                ${formatFileSize(file.fileSize)}
+                            </small>
+                        </a>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Render File yang Sudah Ada di Form Edit Jawaban
+    function renderAnswerExistingFiles(files) {
+        if (!editAnswerExistingFiles) return;
+        editAnswerExistingFiles.innerHTML = files.length ? files.map(file => `
+            <div class="list-group-item d-flex align-items-center justify-content-between gap-2 border-0 bg-light rounded-3 mb-1">
+                <span class="text-truncate small">${escapeHtml(file.fileName)}</span>
+                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" data-delete-answer-file="${Number(file.fileId)}">Hapus</button>
+            </div>`).join('') : '<div class="text-muted small">Tidak ada lampiran saat ini.</div>';
+    }
+
+    // Hapus Lampiran File Jawaban
+    editAnswerExistingFiles?.addEventListener('click', async event => {
+        const button = event.target.closest('[data-delete-answer-file]');
+        if (!button || !await window.appConfirm('Hapus lampiran ini secara permanen?')) return;
+        button.disabled = true;
+
+        fetch(`${BASE_URL}app/api/task_answers.php`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete_attachment', fileId: button.dataset.deleteAnswerFile })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (!result.success) throw new Error(result.message || 'Lampiran gagal dihapus.');
+            window.appToast?.('Lampiran dihapus.', 'success');
+            if (currentlyViewingAnswerId) {
+                openAnswerDetailModal(currentlyViewingAnswerId);
+            }
+        })
+        .catch(error => {
+            window.appToast?.(error.message, 'danger');
+            button.disabled = false;
+        });
+    });
+
+    // Dirty Checking untuk Form Edit Jawaban
+    function checkAnswerDirty() {
+        if (!btnSaveAnswerEdit) return;
+
+        const currentTitle = (editAnswerTitleInput.value || '').trim();
+        const currentNotes = (editAnswerNotesInput.value || '').trim();
+        const hasNewFiles = editAnswerNewAttachments.files && editAnswerNewAttachments.files.length > 0;
+
+        const isTitleChanged = currentTitle !== initialAnswerTitle;
+        const isNotesChanged = currentNotes !== initialAnswerNotes;
+        const isDirty = (isTitleChanged || isNotesChanged || hasNewFiles) && currentTitle.length > 0;
+
+        btnSaveAnswerEdit.disabled = !isDirty;
+    }
+
+    editAnswerTitleInput?.addEventListener('input', checkAnswerDirty);
+    editAnswerNotesInput?.addEventListener('input', checkAnswerDirty);
+    editAnswerNewAttachments?.addEventListener('change', checkAnswerDirty);
+
+    // Submit Simpan Perubahan Jawaban
+    formEditAnswer?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const submitBtn = btnSaveAnswerEdit;
+        const formData = new FormData(formEditAnswer);
+
+        window.uploadWithProgress(`${BASE_URL}app/api/task_answers.php`, formData, submitBtn)
+            .then(result => {
+                if (result.success) {
+                    window.appToast?.('Jawaban berhasil diperbarui.', 'success');
+                    bootstrap.Modal.getInstance(viewAnswerModalEl)?.hide();
+                    loadTaskDetail();
+                } else {
+                    window.appToast?.(result.message || 'Gagal memperbarui jawaban.', 'danger');
+                }
+            })
+            .catch(err => {
+                console.error('Update answer error:', err);
+                window.appToast?.('Terjadi kesalahan server saat memperbarui jawaban.', 'danger');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Simpan Perubahan';
+            });
+    });
+
+    // Salin Link Jawaban
+    btnCopyAnswerLink?.addEventListener('click', function () {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url)
+            .then(() => window.appToast?.('Tautan tugas disalin ke papan klip.', 'success'))
+            .catch(() => window.appToast?.('Gagal menyalin tautan.', 'danger'));
+    });
+
+    // Hapus Jawaban dari Menu Titik Tiga Modal
+    btnDeleteOwnAnswer?.addEventListener('click', async function () {
+        if (!currentlyViewingAnswerId) return;
+        if (!await window.appConfirm('Hapus jawaban ini secara permanen beserta seluruh file lampirannya?')) return;
+
+        btnDeleteOwnAnswer.disabled = true;
+
+        fetch(`${BASE_URL}app/api/task_answers.php`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ answerId: currentlyViewingAnswerId })
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                window.appToast?.('Jawaban berhasil dihapus.', 'success');
+                bootstrap.Modal.getInstance(viewAnswerModalEl)?.hide();
+                loadTaskDetail();
+            } else {
+                window.appToast?.(result.message || 'Gagal menghapus jawaban.', 'danger');
+                btnDeleteOwnAnswer.disabled = false;
+            }
+        })
+        .catch(err => {
+            console.error('Delete answer error:', err);
+            window.appToast?.('Terjadi kesalahan saat menghapus jawaban.', 'danger');
+            btnDeleteOwnAnswer.disabled = false;
+        });
+    });
+
+    // ====================================================================================
+    // 8. KOMENTAR (DESAIN FORM & LOGIKA EDIT GAYA GLOBAL CHAT)
+    // ====================================================================================
+
+    function renderComments(comments) {
+        if (!commentsContainer) return;
+
+        if (!comments || comments.length === 0) {
+            commentsContainer.innerHTML = '<div class="text-muted text-center py-4 fst-italic">Belum ada diskusi. Jadilah yang pertama berkomentar!</div>';
+            return;
+        }
+
+        commentsContainer.innerHTML = comments.map(c => {
+            const avatar = resolveAssetUrl(c.avatarUrl);
+            const truncatedName = truncateUsername(c.userName, 20);
+
+            const ownerMenu = c.isOwner ? `
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-link text-secondary p-0 shadow-none border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Menu Komentar">
+                        <i class="bi bi-three-dots-vertical fs-6"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 py-1">
+                        <li>
+                            <button class="dropdown-item py-1.5 small d-flex align-items-center gap-2" type="button" data-edit-comment-id="${c.commentId}" data-comment-content="${escapeHtml(c.commentContent)}">
+                                <i class="bi bi-pencil"></i>Edit
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item py-1.5 small text-danger d-flex align-items-center gap-2" type="button" data-delete-comment-id="${c.commentId}">
+                                <i class="bi bi-trash"></i>Hapus
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            ` : '';
+
+            return `
+                <div class="d-flex align-items-start gap-3 comment-row" data-comment-id="${c.commentId}">
+                    <!-- Kolom Avatar & Badge Level Berjajar Vertikal Rata Tengah -->
+                    <div class="comment-avatar-badge-col">
+                        <img src="${avatar}" class="rounded-circle border" style="width: 36px; height: 36px; object-fit: cover; display: block; margin: 0 auto 3px auto;" alt="Avatar" onerror="this.src='${BASE_URL}public/assets/img/logo.png'">
+                        ${roleBadgeCompactHtml(c.roleLevel)}
+                    </div>
+
+                    <!-- Bubble Isi Komentar (Tanpa Background Gelap) -->
+                    <div class="comment-bubble flex-grow-1 position-relative">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-bold text-dark small" title="${escapeHtml(c.userName)}">${escapeHtml(truncatedName)}</span>
+                                <small class="text-muted" style="font-size: 0.72rem;">${formatIndoDate(c.createdAt)}</small>
+                            </div>
+                            ${ownerMenu}
+                        </div>
+                        <div class="comment-text text-break text-secondary" style="font-size: 0.88rem; white-space: pre-wrap; line-height: 1.5;">${escapeHtml(c.commentContent)}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Dynamic Textarea Auto-Expand Komentar
+    if (commentContent) {
+        commentContent.addEventListener('input', function () {
+            this.style.height = 'auto';
+            const newHeight = Math.min(this.scrollHeight, 80);
+            this.style.height = newHeight + 'px';
+            this.style.overflowY = this.scrollHeight > 80 ? 'auto' : 'hidden';
+        });
+
+        commentContent.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (commentForm) {
+                    commentForm.requestSubmit();
+                }
+            }
+        });
+    }
+
+    // Set & Cancel Mode Edit Komentar
+    function setEditCommentMode(commentId, currentText) {
+        cancelEditCommentMode();
+
+        editingCommentId = Number(commentId);
+        if (commentContent) {
+            commentContent.value = currentText || '';
+            commentContent.style.height = 'auto';
+            commentContent.style.height = Math.min(commentContent.scrollHeight, 80) + 'px';
+            commentContent.focus();
+        }
+
+        const row = commentsContainer ? commentsContainer.querySelector(`.comment-row[data-comment-id="${commentId}"]`) : null;
+        if (row) {
+            const b = row.querySelector('.comment-bubble');
+            if (b) b.classList.add('comment-bubble-editing');
+        }
+
+        if (btnCancelEditComment) {
+            btnCancelEditComment.classList.remove('d-none');
+            btnCancelEditComment.classList.add('d-flex');
+        }
+        if (btnSubmitCommentIcon) {
+            btnSubmitCommentIcon.className = 'bi bi-pencil-fill fs-6';
+        }
+        if (btnSubmitComment) {
+            btnSubmitComment.title = 'Simpan Perubahan';
+        }
+    }
+
+    function cancelEditCommentMode() {
+        editingCommentId = null;
+        if (commentContent) {
+            commentContent.value = '';
+            commentContent.style.height = 'auto';
+        }
+        if (commentsContainer) {
+            commentsContainer.querySelectorAll('.comment-bubble-editing').forEach(el => el.classList.remove('comment-bubble-editing'));
+        }
+        if (btnCancelEditComment) {
+            btnCancelEditComment.classList.add('d-none');
+            btnCancelEditComment.classList.remove('d-flex');
+        }
+        if (btnSubmitCommentIcon) {
+            btnSubmitCommentIcon.className = 'bi bi-send-fill fs-6';
+        }
+        if (btnSubmitComment) {
+            btnSubmitComment.title = 'Kirim Komentar';
+        }
+    }
+
+    btnCancelEditComment?.addEventListener('click', cancelEditCommentMode);
+
+    // Event Delegation Edit & Hapus Komentar
+    commentsContainer?.addEventListener('click', async function (e) {
+        const editBtn = e.target.closest('[data-edit-comment-id]');
+        if (editBtn) {
+            const commentId = Number(editBtn.dataset.editCommentId);
+            const content = editBtn.dataset.commentContent || '';
+            setEditCommentMode(commentId, content);
+            return;
+        }
+
+        const deleteBtn = e.target.closest('[data-delete-comment-id]');
+        if (deleteBtn) {
+            const commentId = Number(deleteBtn.dataset.deleteCommentId);
+            if (!await window.appConfirm('Hapus komentar ini?')) return;
+
+            const formData = new FormData();
+            formData.append('action', 'delete_comment');
+            formData.append('commentId', commentId);
+
+            fetch(`${BASE_URL}app/api/tasks.php`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    window.appToast?.('Komentar dihapus.', 'success');
+                    if (editingCommentId === commentId) {
+                        cancelEditCommentMode();
+                    }
+                    loadTaskDetail();
+                } else {
+                    window.appToast?.(res.message || 'Gagal menghapus komentar.', 'danger');
+                }
+            })
+            .catch(err => {
+                console.error('Delete comment error:', err);
+                window.appToast?.('Terjadi kesalahan koneksi.', 'danger');
+            });
+        }
+    });
+
+    // Form Submit Komentar (Tambah / Update)
+    commentForm?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const content = commentContent.value.trim();
+        if (content === '') return;
+
+        btnSubmitComment.disabled = true;
+
+        const formData = new FormData();
+        if (editingCommentId !== null) {
+            formData.append('action', 'edit_comment');
+            formData.append('commentId', editingCommentId);
+            formData.append('commentContent', content);
+        } else {
+            formData.append('action', 'add_comment');
+            formData.append('taskId', CURRENT_TASK_ID);
+            formData.append('commentContent', content);
+        }
+
+        fetch(`${BASE_URL}app/api/tasks.php`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(res => {
+            if (res.success) {
+                cancelEditCommentMode();
+                loadTaskDetail();
+            } else {
+                window.appToast?.('Gagal memproses komentar: ' + res.message, 'danger');
             }
         })
         .catch(err => {
             console.error('Comment Error:', err);
-            window.appToast?.('Terjadi kesalahan saat mengirim komentar.', 'danger');
+            window.appToast?.('Terjadi kesalahan koneksi.', 'danger');
         })
         .finally(() => {
             btnSubmitComment.disabled = false;
-            btnSubmitComment.textContent = 'Kirim Komentar';
         });
     });
 
-    // 7. Form Handler Edit Tugas (PUT via POST)
-    formEditTask.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const btnSubmit = document.getElementById('btnSubmitEditTask');
+    // ====================================================================================
+    // 9. FORM HANDLER EDIT TUGAS & HAPUS TUGAS
+    // ====================================================================================
 
-        let formData = new FormData(this);
+    formEditTask?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const btnSubmit = btnSubmitEditTask;
+        const formData = new FormData(this);
 
         window.uploadWithProgress(`${BASE_URL}app/api/tasks.php`, formData, btnSubmit)
-        .then(res => {
-            if (res.success) {
-                window.appToast?.('Tugas berhasil diperbarui.', 'success');
-                bootstrap.Modal.getInstance(document.getElementById('editTaskModal')).hide();
-                window.clearMultiFileInputs?.(formEditTask);
-                document.getElementById('editTaskAttachments').value = '';
-                loadTaskDetail();
-            } else {
-                window.appToast?.('Gagal: ' + res.message, 'danger');
-            }
-        })
-        .catch(err => {
-            console.error('Edit Error:', err);
-            window.appToast?.('Terjadi kesalahan server saat memperbarui tugas.', 'danger');
-        })
-        .finally(() => {
-            btnSubmit.disabled = false;
-            btnSubmit.textContent = 'Simpan Perubahan';
-        });
+            .then(res => {
+                if (res.success) {
+                    window.appToast?.('Tugas berhasil diperbarui.', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('editTaskModal'))?.hide();
+                    window.clearMultiFileInputs?.(formEditTask);
+                    if (editTaskAttachments) editTaskAttachments.value = '';
+                    loadTaskDetail();
+                } else {
+                    window.appToast?.('Gagal: ' + res.message, 'danger');
+                }
+            })
+            .catch(err => {
+                console.error('Edit Error:', err);
+                window.appToast?.('Terjadi kesalahan server saat memperbarui tugas.', 'danger');
+            })
+            .finally(() => {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Simpan Perubahan';
+            });
     });
 
-    // 8. Soft-Delete Tugas (DELETE via fetch)
-    btnDeleteTask.addEventListener('click', async function() {
+    btnDropdownDeleteTask?.addEventListener('click', async function () {
         if (!await window.appConfirm('Tugas akan dikeluarkan dari daftar aktif dan lampirannya dihapus.')) return;
-        deleteCurrentTask();
-    });
-
-    async function deleteCurrentTask() {
-        btnDeleteTask.disabled = true;
-        btnDeleteTask.textContent = 'Menghapus...';
+        btnDropdownDeleteTask.disabled = true;
 
         fetch(`${BASE_URL}app/api/tasks.php`, {
             method: 'DELETE',
@@ -507,64 +1130,19 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(res => {
             if (res.success) {
                 window.appToast?.('Tugas berhasil dihapus.', 'success');
-                // Redirect kembali ke halaman course karena tugas ini sudah tidak bisa diakses
                 window.location.href = backToCourseBtn.href;
             } else {
                 window.appToast?.('Gagal menghapus: ' + res.message, 'danger');
-                btnDeleteTask.disabled = false;
-                btnDeleteTask.textContent = 'Hapus';
+                btnDropdownDeleteTask.disabled = false;
             }
         })
         .catch(err => {
             console.error('Delete Error:', err);
             window.appToast?.('Terjadi kesalahan saat menghapus tugas.', 'danger');
-            btnDeleteTask.disabled = false;
-            btnDeleteTask.textContent = 'Hapus';
+            btnDropdownDeleteTask.disabled = false;
         });
-    }
+    });
 
-    function resolveAssetUrl(path) {
-        if (!path) return `${BASE_URL}public/assets/img/logo.png`;
-        return /^(https?:)?\/\//i.test(path) ? path : `${BASE_URL}${path}`;
-    }
-
-    function roleBadgeHtml(role) {
-        if (role === 'Primordial') return '<span class="badge mt-1" style="background: linear-gradient(135deg, #be9d30, #ffd13b, #aa771c); color: #ffffff; font-size: 0.65rem; font-weight: 600;">Primordial</span>';
-        if (role === 'Sepuh') return '<span class="badge bg-secondary text-white mt-1" style="font-size: 0.65rem;">Sepuh</span>';
-        return '<span class="text-muted d-block" style="font-size: 0.72rem;">Keroco</span>';
-    }
-
-    function linkifyDescription(value) {
-        const pattern = /https?:\/\/[^\s<]+/gi;
-        let html = '';
-        let lastIndex = 0;
-        for (const match of value.matchAll(pattern)) {
-            html += escapeHtml(value.slice(lastIndex, match.index));
-            const url = match[0];
-            const safeUrl = escapeHtml(url);
-            html += `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`;
-            lastIndex = match.index + url.length;
-        }
-        return html + escapeHtml(value.slice(lastIndex));
-    }
-
-    // Utilitas Formatter
-    function escapeHtml(unsafe) {
-        if (!unsafe) return '';
-        return unsafe.toString()
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-    function formatDate(dateString) {
-        if (!dateString) return '-';
-        const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-        return new Date(dateString).toLocaleDateString('id-ID', options);
-    }
-
-    // Mulai eksekusi
+    // Eksekusi Awal
     loadTaskDetail();
 });

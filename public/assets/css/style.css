@@ -782,3 +782,65 @@ body.login-body {
         right: 16px;
     }
 }
+
+/* ==========================================================================
+   TASK & MATERIAL DETAIL REDESIGN ENHANCEMENTS
+   ========================================================================== */
+.file-grid-card {
+    transition: transform 0.15s ease, background-color 0.15s ease;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.file-grid-card:hover {
+    transform: translateY(-2px);
+    background-color: rgba(0, 0, 0, 0.025) !important;
+}
+
+.btn-toggle-inverted {
+    background-color: #212529 !important;
+    color: #ffffff !important;
+    border-color: #212529 !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-toggle-inverted:hover {
+    background-color: transparent !important;
+    color: #212529 !important;
+    border-color: #212529 !important;
+}
+
+.comment-bubble-editing {
+    border: 1px solid #0d6efd !important;
+    background-color: #e8f0fe !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+}
+
+.comment-avatar-badge-col {
+    width: 44px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+}
+
+.comment-avatar-badge-col img {
+    display: block;
+    margin: 0 auto 3px auto;
+}
+
+.comment-row {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.comment-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}

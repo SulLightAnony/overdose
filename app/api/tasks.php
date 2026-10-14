@@ -337,37 +337,50 @@ try {
             $isCompleted = (bool)$stmtCheckDone->fetchColumn();
 
             // Daftar Mahasiswa yang sudah Selesai
-            $stmtCompletions =$pdo->prepare("
-                SELECT c.completedAt, u.userName, u.avatarUrl, u.roleLevel, u.isAnonymous AS hideCompletedIdentity
+            $stmtCompletions = $pdo->prepare("
+                SELECT c.completedAt, c.userId, u.userName, u.avatarUrl, u.roleLevel, u.isAnonymous AS hideCompletedIdentity,
+                       sa.answerId
                 FROM task_completions c
                 LEFT JOIN users u ON c.userId = u.userId
+                LEFT JOIN task_shared_answers sa ON sa.taskId = c.taskId AND sa.userId = c.userId
                 WHERE c.taskId = :taskId
                 ORDER BY c.completedAt ASC
             ");
-            $stmtCompletions->execute(['taskId' =>$taskId]);
-            $completions =$stmtCompletions->fetchAll(PDO::FETCH_ASSOC);
+            $stmtCompletions->execute(['taskId' => $taskId]);
+            $completions = $stmtCompletions->fetchAll(PDO::FETCH_ASSOC);
+
+            // Cek apakah user saat ini sudah membagikan jawaban untuk task ini
+            $stmtMyAnswer = $pdo->prepare("SELECT answerId FROM task_shared_answers WHERE taskId = :taskId AND userId = :userId LIMIT 1");
+            $stmtMyAnswer->execute(['taskId' => $taskId, 'userId' => $userId]);
+            $mySharedAnswerId = $stmtMyAnswer->fetchColumn();
 
             foreach ($completions as &$comp) {
                 if ($comp['userName'] === null) {
                     $comp['userName'] = 'Pengguna Nonaktif';
                     $comp['avatarUrl'] = BASE_URL . 'public/assets/img/logo.png';
                     $comp['roleLevel'] = 'Keroco';
-                } elseif ($comp['hideCompletedIdentity']) {$comp['userName'] = 'Mahasiswa Rahasia';
+                    $comp['answerId'] = null;
+                } elseif ($comp['hideCompletedIdentity']) {
+                    $comp['userName'] = 'Mahasiswa Rahasia';
                     $comp['avatarUrl'] = BASE_URL . 'public/assets/img/logo.png';
                     $comp['roleLevel'] = 'Keroco';
+                    $comp['answerId'] = null;
+                } else {
+                    $comp['answerId'] = $comp['answerId'] ? (int)$comp['answerId'] : null;
                 }
             }
+            unset($comp);
 
             // Komentar Publik
-            $stmtComments =$pdo->prepare("
+            $stmtComments = $pdo->prepare("
                 SELECT c.commentId, c.commentContent, c.createdAt, u.userName, u.avatarUrl, u.roleLevel, u.userId
                 FROM task_comments c
                 LEFT JOIN users u ON c.userId = u.userId
                 WHERE c.taskId = :taskId
                 ORDER BY c.createdAt ASC
             ");
-            $stmtComments->execute(['taskId' =>$taskId]);
-            $comments =$stmtComments->fetchAll(PDO::FETCH_ASSOC);
+            $stmtComments->execute(['taskId' => $taskId]);
+            $comments = $stmtComments->fetchAll(PDO::FETCH_ASSOC);
 
             foreach ($comments as &$comment) {
                 if ($comment['userName'] === null) {
@@ -375,6 +388,7 @@ try {
                     $comment['avatarUrl'] = BASE_URL . 'public/assets/img/logo.png';
                     $comment['roleLevel'] = 'Keroco';
                 }
+                $comment['isOwner'] = ((int)$comment['userId'] === $userId);
             }
             unset($comment);
 
@@ -386,6 +400,7 @@ try {
                     'isCompleted' => $isCompleted,
                     'completions' => $completions,
                     'comments' => $comments,
+                    'mySharedAnswerId' => $mySharedAnswerId ? (int)$mySharedAnswerId : null,
                     'isDeleted' => (bool)$task['deletionStatus'],
                     'deletedMessage' => $task['deletionStatus']
                         ? 'Dihapus oleh ' . ($task['deletedByUserName'] ?: 'Pengguna') . ' pada ' . $task['deletedAt']
@@ -399,12 +414,13 @@ try {
     }
 
     // ====================================================================================
-    // POST REQUESTS (CREATE, TOGGLE COMPLETION, ADD COMMENT)
+    // POST REQUESTS (CREATE, TOGGLE COMPLETION, ADD COMMENT, EDIT/DELETE COMMENT)
     // ====================================================================================
     if ($method === 'POST') {
 
         // 1. ADD COMMENT
-        if ($action === 'add_comment') {$taskId = isset($_POST['taskId']) ? (int)$_POST['taskId'] : 0;
+        if ($action === 'add_comment') {
+            $taskId = isset($_POST['taskId']) ? (int)$_POST['taskId'] : 0;
             $commentContent = isset($_POST['commentContent']) ? trim($_POST['commentContent']) : '';
 
             if ($taskId <= 0 || empty($commentContent)) {
@@ -419,7 +435,7 @@ try {
                 exit;
             }
 
-            $stmt =$pdo->prepare("INSERT INTO task_comments (taskId, userId, commentContent, createdAt) VALUES (:taskId, :userId, :content, NOW())");
+            $stmt = $pdo->prepare("INSERT INTO task_comments (taskId, userId, commentContent, createdAt) VALUES (:taskId, :userId, :content, NOW())");
             $stmt->execute([
                 'taskId' => $taskId,
                 'userId' => $userId,
@@ -427,6 +443,74 @@ try {
             ]);
 
             echo json_encode(['success' => true, 'message' => 'Komentar berhasil dikirim']);
+            exit;
+        }
+
+        // 1B. EDIT COMMENT
+        if ($action === 'edit_comment') {
+            $commentId = isset($_POST['commentId']) ? (int)$_POST['commentId'] : 0;
+            $commentContent = isset($_POST['commentContent']) ? trim($_POST['commentContent']) : '';
+
+            if ($commentId <= 0 || empty($commentContent)) {
+                echo json_encode(['success' => false, 'message' => 'Komentar tidak boleh kosong']);
+                exit;
+            }
+
+            $stmtComment = $pdo->prepare("SELECT userId FROM task_comments WHERE commentId = :commentId");
+            $stmtComment->execute(['commentId' => $commentId]);
+            $ownerId = $stmtComment->fetchColumn();
+
+            if (!$ownerId) {
+                echo json_encode(['success' => false, 'message' => 'Komentar tidak ditemukan']);
+                exit;
+            }
+            if ((int)$ownerId !== $userId) {
+                echo json_encode(['success' => false, 'message' => 'Akses ditolak. Anda bukan pembuat komentar ini.']);
+                exit;
+            }
+
+            $stmtUpdate = $pdo->prepare("UPDATE task_comments SET commentContent = :content WHERE commentId = :commentId");
+            $stmtUpdate->execute([
+                'content' => $commentContent,
+                'commentId' => $commentId
+            ]);
+
+            echo json_encode(['success' => true, 'message' => 'Komentar berhasil diperbarui']);
+            exit;
+        }
+
+        // 1C. DELETE COMMENT
+        if ($action === 'delete_comment') {
+            $commentId = isset($_POST['commentId']) ? (int)$_POST['commentId'] : 0;
+            if ($commentId <= 0) {
+                echo json_encode(['success' => false, 'message' => 'ID komentar tidak valid']);
+                exit;
+            }
+
+            $stmtComment = $pdo->prepare("SELECT userId FROM task_comments WHERE commentId = :commentId");
+            $stmtComment->execute(['commentId' => $commentId]);
+            $ownerId = $stmtComment->fetchColumn();
+
+            if (!$ownerId) {
+                echo json_encode(['success' => false, 'message' => 'Komentar tidak ditemukan']);
+                exit;
+            }
+
+            // Otorisasi: Pembuat asli atau Primordial
+            $stmtRole = $pdo->prepare("SELECT roleLevel FROM users WHERE userId = :userId");
+            $stmtRole->execute(['userId' => $userId]);
+            $userRole = (string)$stmtRole->fetchColumn();
+            $canDelete = ((int)$ownerId === $userId) || (strtolower($userRole) === 'primordial');
+
+            if (!$canDelete) {
+                echo json_encode(['success' => false, 'message' => 'Akses ditolak.']);
+                exit;
+            }
+
+            $stmtDelete = $pdo->prepare("DELETE FROM task_comments WHERE commentId = :commentId");
+            $stmtDelete->execute(['commentId' => $commentId]);
+
+            echo json_encode(['success' => true, 'message' => 'Komentar berhasil dihapus']);
             exit;
         }
 

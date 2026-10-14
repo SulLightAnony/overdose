@@ -7,61 +7,14 @@
  * 
  * TUJUAN (PURPOSE):
  * File ini menyediakan antarmuka pengguna (UI) lengkap untuk menampilkan detail sebuah tugas,
- * mengunduh/membuka multi-file lampiran pendukung, melihat informasi pembuat & editor terakhir,
- * menandai status penyelesaian tugas, melihat daftar teman yang sudah selesai, membaca/menulis
- * komentar publik, serta menyediakan tombol akses menuju Halaman Sharing Jawaban.
+ * mengunduh/membuka multi-file lampiran pendukung dalam tata letak grid, menandai status
+ * penyelesaian tugas, melihat daftar teman yang sudah selesai dengan opsi privasi,
+ * membuka modal sharing jawaban secara terpadu di halaman yang sama, serta mengelola
+ * diskusi/komentar publik dengan form bergaya Global Chat.
  * 
- * RELASI DENGAN FILE LAIN (FILE RELATIONS):
- * - Layout Wrapper: app/views/layout.php
- * - Auth Gatekeeper: app/api/auth/gatekeeper.php
- * - Backend API Endpoint: app/api/tasks.php (Dipanggil via AJAX)
- * - Frontend Script Module: public/js/modules/task_detail.js
- * - External Navigation View: app/views/task_answers.php?taskId=X (Halaman Sharing Jawaban)
- * 
- * STRUCTURE & KOMPONEN UI (UI COMPONENTS):
- * 1. Navigation & Breadcrumb Header:
- *    - Tombol "Kembali ke Course" (Navigasi kembali ke `course_detail.php?id=courseId`).
- * 
- * 2. Header Card Informasi Tugas (Top Section):
- *    - Memuat Nama Mata Kuliah, Kode Matkul, Tipe Tugas (Teori/Praktek).
- *    - Judul Tugas Lengkap.
- *    - Badge Status Deadline (Tersedia / Selesai / Telat) & Countdown Waktu Tenggat.
- * 
- * 3. Card Informasi Pembuat & Riwayat Editor (Author & Last Edit Metadata):
- *    - Avatar Pembuat, Nama Pembuat, Role Badge (Keroco/Sepuh/Primordial), Tanggal Dibuat.
- *    - Informasi Editor Terakhir (jika `lastEditedByUserId` NOT NULL): 
- *      "Terakhir diubah oleh [Nama Editor] pada [Timestamp]".
- * 
- * 4. Card Deskripsi Tugas & Multi-File Lampiran:
- *    - Teks Deskripsi Penuh / Instruksi Tugas (format paragraf/linebreaks).
- *    - Container Daftar File Lampiran (Multi-File Upload Results):
- *      Setiap file terlampir memiliki 2 tombol aksi terpisah:
- *      * Tombol "Buka": Membuka file di tab baru browser (`target="_blank"`).
- *      * Tombol "Download": Mengunduh file langsung ke perangkat lokal (`download` attribute).
- * 
- * 5. Control Bar Action Buttons (Aksi Pengguna):
- *    - Tombol "Tandai Selesai" / "Batal Selesai" (Toggle status via AJAX ke `tasks.php?action=toggle_completion`).
- *    - Tombol "Share Jawaban": Navigasi langsung ke `task_answers.php?taskId=X` (bisa diakses oleh siapa saja tanpa syarat selesai tugas).
- *    - Tombol "Edit Tugas": Membuka modal edit tugas (Dapat diakses oleh semua level user Keroco ke atas).
- *    - Tombol "Hapus Tugas": Memicu Soft-Delete baris data database + Hard-Delete file fisik via API `tasks.php`.
- * 
- * 6. Card Daftar "Mahasiswa yang Telah Selesai":
- *    - Menampilkan daftar pengguna dari `task_completions`.
- *    - Komponen Item: Avatar Pengguna, Nama Pengguna, Badge Level, Waktu Penyelesaian.
- *    - ATURAN PRIVASI (Anonymous Identity):
- *      Jika user mengaktifkan `hideCompletedIdentity = 1`, sistem merender Avatar Default & Nama "Mahasiswa Rahasia".
- *    - Anonymous Note Text di bagian bawah: "Tidak ingin namamu muncul di sini? Atur melalui [Pengaturan Profil]."
- * 
- * 7. Card Komentar Publik (Diskusi Tugas):
- *    - Thread daftar komentar dari `task_comments` (Avatar, Nama, Level, Waktu, Isi Komentar).
- *    - Form Input Teks Komentar Publik + Tombol "Kirim Komentar".
- * 
- * CARA KERJA SCRIPT FRONTEND (`task_detail.js`):
- * - Mengambil ID Tugas dari query parameter URL (`?id=X`).
- * - Mengirim request GET ke `app/api/tasks.php?action=detail&taskId=X`.
- * - Jika data tugas memiliki `deletionStatus = 1` (Soft-Deleted), tampilkan pesan "Tugas ini telah dihapus oleh [userName] pada [timestamp]" dan blokir akses konten.
- * - Merender seluruh data tugas, file lampiran, completions, dan komentar ke DOM.
- * - Mengelola request POST AJAX saat user mengklik "Tandai Selesai", "Kirim Komentar", "Edit Tugas", atau "Hapus Tugas".
+ * CATATAN INTEGRITAS:
+ * - DILARANG menggunakan emoji di dalam baris kode PHP, JS, HTML, maupun CSS.
+ * - Tetap menggunakan tabel task_shared_answers dan task_shared_answer_files di database.
  */
 
 require_once __DIR__ . '/../api/auth/gatekeeper.php';
@@ -87,124 +40,130 @@ ob_start();
 
     <!-- Skeleton Loader (Ditampilkan saat AJAX memuat data) -->
     <div id="skeleton-loader" class="placeholder-glow">
-        <div class="card shadow-sm mb-4"><div class="card-body p-4"><h3 class="placeholder col-6 rounded mb-3"></h3><p class="placeholder col-4 rounded"></p></div></div>
-        <div class="card shadow-sm mb-4"><div class="card-body p-4"><p class="placeholder col-8 rounded"></p></div></div>
+        <div class="card shadow-sm mb-4 rounded-4 border-0 p-4"><div class="card-body"><h3 class="placeholder col-6 rounded mb-3"></h3><p class="placeholder col-4 rounded"></p></div></div>
+        <div class="card shadow-sm mb-4 rounded-4 border-0 p-4"><div class="card-body"><p class="placeholder col-8 rounded"></p></div></div>
     </div>
 
     <!-- Wrapper Konten Utama (Disembunyikan sampai data berhasil dimuat) -->
     <div id="main-content-wrapper" class="d-none">
         
-        <!-- 2. Header Card Informasi Tugas -->
-        <div class="card shadow-sm mb-4 border-0 border-start border-5 border-primary">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
-                    <div>
-                        <span class="badge bg-secondary me-1" id="courseCodeBadge"></span>
-                        <span class="badge bg-info text-dark" id="taskTypeBadge"></span>
+        <!-- 1. Banner Utama Informasi Tugas (Desain Konsisten Mirip Course Detail Item Card) -->
+        <div class="card border-0 shadow-sm rounded-4 text-dark overflow-hidden mb-4 p-4" id="taskBannerCard" style="border-left: 5px solid #ffc107 !important;">
+            <div class="d-flex align-items-start justify-content-between gap-3">
+                <div class="flex-grow-1">
+                    <div class="text-secondary small fw-semibold mb-1" id="courseNameTitle"></div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                        <i class="bi bi-mortarboard-fill text-primary fs-3 me-1 align-middle" id="taskBannerIcon"></i>
+                        <span class="fs-4 fw-bold text-dark align-middle" id="taskTitle"></span>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2.5 py-1 small fw-semibold align-middle" id="taskTypeBadge"></span>
+                        <span id="taskStatusBadgeContainer"></span>
                     </div>
-                    <div id="taskStatusBadgeContainer">
-                        <!-- Badge status akan dirender JS -->
-                    </div>
+                    <div class="small fw-semibold mt-1" id="taskDeadlineText"></div>
                 </div>
-                <h2 class="card-title fw-bold mb-1" id="taskTitle"></h2>
-                <p class="text-muted mb-3" id="courseNameTitle"></p>
-                <div class="text-danger fw-bold d-flex align-items-center" id="taskDeadlineText">
-                    <!-- Deadline teks akan dirender JS -->
-                </div>
-            </div>
-        </div>
 
-        <!-- 3. Card Informasi Pembuat & Riwayat Editor -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                <div class="d-flex align-items-center">
-                    <img id="authorAvatar" src="" alt="Avatar Pembuat" class="rounded-circle me-3 border" style="width: 50px; height: 50px; object-fit: cover;">
-                    <div>
-                        <h6 class="mb-1 fw-bold" id="authorName"></h6>
-                        <small class="text-muted" id="authorRoleDate"></small>
-                    </div>
-                </div>
-                <div class="text-md-end d-none" id="editorContainer">
-                    <small class="text-muted fst-italic" id="editorInfo"></small>
-                </div>
-            </div>
-        </div>
-
-        <!-- 4. Card Deskripsi Tugas & Multi-File Lampiran -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <h5 class="card-title fw-bold mb-3 border-bottom pb-2">Deskripsi Tugas</h5>
-                <div id="taskDescription" class="mb-4" style="white-space: pre-wrap; line-height: 1.6;"></div>
-
-                <h5 class="card-title fw-bold mb-3 border-bottom pb-2">Lampiran File</h5>
-                <div id="taskFilesContainer" class="list-group">
-                    <!-- Item file akan di-render oleh JS -->
-                    <div class="text-muted fst-italic" id="noFilesText">Tidak ada lampiran file.</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 5. Control Bar Action Buttons -->
-        <div class="card shadow-sm mb-4 bg-light">
-            <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <div class="d-flex flex-wrap gap-2">
-                    <button class="btn btn-success fw-bold px-4" id="btnToggleComplete">
-                        <span id="completeBtnText">Tandai Selesai</span>
+                <!-- Menu Titik Tiga Aksi Banner di Sudut Kanan Atas -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light rounded-circle shadow-none p-0 d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 36px; height: 36px;" title="Menu Aksi">
+                        <i class="bi bi-three-dots-vertical fs-5 text-secondary"></i>
                     </button>
-                    <a href="<?= BASE_URL ?>task-answers?taskId=<?= $taskId ?>" class="btn btn-primary fw-bold px-4" id="btnShareJawaban">
-                        Share / Lihat Jawaban
-                    </a>
-                    <button type="button" class="btn btn-outline-dark fw-bold px-4" data-share-url>Bagikan</button>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                    <button class="btn btn-warning px-4" id="btnEditTask" data-bs-toggle="modal" data-bs-target="#editTaskModal">Edit</button>
-                    <button class="btn btn-danger px-4" id="btnDeleteTask">Hapus</button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+                        <li>
+                            <button class="dropdown-item py-2 small" type="button" data-share-url>
+                                <i class="bi bi-share me-2"></i>Bagikan URL
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item py-2 small d-none" type="button" id="btnDropdownEditTask" data-bs-toggle="modal" data-bs-target="#editTaskModal">
+                                <i class="bi bi-pencil me-2"></i>Edit Tugas
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item py-2 small text-danger d-none" type="button" id="btnDropdownDeleteTask">
+                                <i class="bi bi-trash me-2"></i>Hapus Tugas
+                            </button>
+                        </li>
+                    </ul>
                 </div>
             </div>
+
+            <!-- Informasi Pembuat di Bagian Bawah Banner -->
+            <div class="mt-3 pt-2 border-top border-light-subtle text-muted small" id="bannerAuthorInfo"></div>
         </div>
 
+        <!-- 2. Deskripsi Tugas & Lampiran File (Satu Wrapper Card) -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <h5 class="fw-bold mb-3 border-bottom pb-2">Deskripsi Tugas</h5>
+            <div id="taskDescription" class="text-secondary" style="white-space: pre-wrap; line-height: 1.6;"></div>
+
+            <!-- Pemisah Garis Tipis Antara Deskripsi & Lampiran File -->
+            <div id="taskFilesDivider" class="border-top border-light-subtle my-4 d-none"></div>
+
+            <!-- Grid Lampiran File (Tanpa Teks Judul "Lampiran File") -->
+            <div id="taskFilesGrid" class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4"></div>
+            <div class="text-muted fst-italic d-none" id="noFilesText">Tidak ada lampiran file.</div>
+        </div>
+
+        <!-- 3. Tombol "Tandai Selesai" di Tengah Halaman -->
+        <div class="d-flex justify-content-center my-4">
+            <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold" id="btnToggleComplete" style="min-width: 220px;">
+                <span id="completeBtnText">Tandai Selesai</span>
+            </button>
+        </div>
+
+        <!-- 5. Row Bawah: Mahasiswa Selesai & Komentar -->
         <div class="row">
-            <!-- 6. Card Daftar "Mahasiswa yang Telah Selesai" -->
+            <!-- Kolom Kiri: Mahasiswa yang Telah Selesai -->
             <div class="col-lg-5 mb-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white fw-bold py-3">
-                        Mahasiswa yang Telah Selesai
-                        <span class="badge bg-success float-end" id="completionCountBadge">0</span>
+                <div class="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column">
+                    <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-dark">Mahasiswa yang Telah Selesai</span>
+                        <span class="badge bg-success rounded-pill d-none" id="completionCountBadge"></span>
                     </div>
-                    <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+
+                    <div class="card-body p-0 flex-grow-1" style="max-height: 320px; overflow-y: auto;">
                         <ul class="list-group list-group-flush" id="completionsList">
                             <!-- Item mahasiswa akan dirender oleh JS -->
                         </ul>
                     </div>
-                    <div class="card-footer bg-light text-center text-muted" style="font-size: 0.8rem;">
-                        Tidak ingin namamu muncul di sini? Atur melalui Pengaturan Profil.
+
+                    <div class="p-3 border-top border-light bg-white rounded-bottom-4">
+                        <div class="text-center text-muted mb-3" style="font-size: 0.8rem;">
+                            Tidak ingin namamu muncul di sini? Atur melalui <a href="<?= BASE_URL ?>configurations" class="text-decoration-underline text-secondary fw-semibold">Pengaturan Profil</a>.
+                        </div>
+
+                        <!-- Tombol Bagikan Jawaban / Batal Bagikan Jawaban -->
+                        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold w-100" id="btnShareAnswer">
+                            Bagikan Jawaban
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- 7. Card Komentar Publik (Diskusi Tugas) -->
+            <!-- Kolom Kanan: Komentar -->
             <div class="col-lg-7 mb-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white fw-bold py-3">
-                        Komentar & Diskusi Publik
+                <div class="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column">
+                    <div class="card-header bg-white border-0 py-3 px-4">
+                        <span class="fw-bold text-dark">Komentar</span>
                     </div>
-                    <div class="card-body d-flex flex-column">
-                        
-                        <!-- Form Input Komentar -->
-                        <form id="commentForm" class="mb-4">
-                            <div class="mb-2">
-                                <textarea class="form-control" id="commentContent" rows="3" style="resize: none;" placeholder="Tulis komentar, pertanyaan, atau diskusi di sini..." required></textarea>
-                            </div>
-                            <div class="text-end">
-                                <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitComment">Kirim Komentar</button>
-                            </div>
-                        </form>
-                        
-                        <!-- Container List Komentar -->
-                        <div id="commentsContainer" class="d-flex flex-column gap-3 overflow-auto" style="max-height: 500px; padding-right: 10px;">
-                            <!-- Item komentar akan dirender oleh JS -->
-                        </div>
 
+                    <!-- Container Komentar (Scrollable) -->
+                    <div class="card-body p-3 flex-grow-1 overflow-auto" id="commentsContainer" style="max-height: 360px; min-height: 180px;">
+                        <!-- Komentar akan dirender oleh JS -->
+                    </div>
+
+                    <!-- Input Form Komentar (Gaya Global Chat) -->
+                    <div class="p-3 border-top border-light bg-white rounded-bottom-4">
+                        <form id="commentForm" class="d-flex align-items-end gap-2">
+                            <div class="flex-grow-1 position-relative">
+                                <textarea id="commentContent" class="form-control rounded-4 px-3 py-2 shadow-none border-light bg-light" placeholder="Tulis komentar..." rows="1" style="resize: none; max-height: 80px; overflow-y: auto; font-size: 0.9rem;" required></textarea>
+                            </div>
+                            <button type="button" class="btn btn-light rounded-circle p-0 d-none align-items-center justify-content-center flex-shrink-0 shadow-sm" id="btnCancelEditComment" style="width: 42px; height: 42px;" title="Batal Edit">
+                                <i class="bi bi-x-lg text-secondary fs-6"></i>
+                            </button>
+                            <button type="submit" class="btn btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm hover-lift" id="btnSubmitComment" style="width: 42px; height: 42px;" title="Kirim Komentar">
+                                <i class="bi bi-send-fill fs-6" id="btnSubmitCommentIcon"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -218,60 +177,177 @@ ob_start();
 <!-- ============================================================ -->
 <div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
+        <div class="modal-content border-0 shadow rounded-4">
             <form id="formEditTask" enctype="multipart/form-data">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editTaskModalLabel">Edit Tugas Kuliah</h5>
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="editTaskModalLabel">Edit Tugas Kuliah</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                 </div>
-                <div class="modal-body">
-                    <!-- Spoofing method untuk menangani request PUT via multi-part PHP -->
+                <div class="modal-body p-4">
                     <input type="hidden" name="_method" value="PUT">
                     <input type="hidden" name="taskId" value="<?= $taskId ?>">
                     <input type="hidden" name="courseId" id="editCourseId" value="">
                     
-                    <div class="row">
-                        <div class="col-md-8 mb-3">
-                            <label for="editTaskTitle" class="form-label">Judul Tugas <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="editTaskTitle" name="taskTitle" required>
-                        </div>
+                    <div class="mb-3">
+                        <label for="editTaskTitle" class="form-label fw-semibold">Judul Tugas <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="editTaskTitle" name="taskTitle" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="editDueDate" class="form-label">Tenggat Waktu (Deadline) <span class="text-danger">*</span></label>
-                        <input type="datetime-local" class="form-control" id="editDueDate" name="dueDate" required>
+                        <label for="editDueDate" class="form-label fw-semibold">Tenggat Waktu (Deadline) <span class="text-danger">*</span></label>
+                        <input type="datetime-local" class="form-control rounded-3" id="editDueDate" name="dueDate" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="editTaskDescription" class="form-label">Deskripsi / Instruksi Tugas</label>
-                        <textarea class="form-control" id="editTaskDescription" name="taskDescription" rows="5" style="resize: none;"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Lampiran saat ini</label>
-                        <div id="editTaskExistingFiles" class="list-group"></div>
+                        <label for="editTaskDescription" class="form-label fw-semibold">Deskripsi / Instruksi Tugas</label>
+                        <textarea class="form-control rounded-3" id="editTaskDescription" name="taskDescription" rows="5" style="resize: none;"></textarea>
                     </div>
 
-                    <div class="mb-3 border rounded p-3 bg-light">
-                        <label for="editTaskAttachments" class="form-label fw-bold">Tambahkan File Lampiran Baru (Opsional)</label>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Lampiran</label>
+                        <div id="editTaskExistingFiles" class="list-group rounded-3"></div>
+                    </div>
+
+                    <div class="mb-3 border rounded-3 p-3 bg-light">
+                        <label for="editTaskAttachments" class="form-label fw-bold">Unggah Berkas</label>
                         <input class="form-control mb-2" type="file" id="editTaskAttachments" name="attachments[]" multiple>
-                        <div class="form-text">Maksimal 10 file, total akumulasi ukuran maksimal 15MB (PDF, Word, Excel, PPT, ZIP, dll). File yang sudah ada sebelumnya tidak akan terhapus.</div>
+                        <div class="form-text small">Maksimal 10 file, total akumulasi ukuran maksimal 15MB.</div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary" id="btnSubmitEditTask">Simpan Perubahan</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold" id="btnSubmitEditTask">Simpan Perubahan</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="deleteTaskConfirmModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Hapus Tugas</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
-        <div class="modal-body">Tugas akan dikeluarkan dari daftar aktif dan lampirannya dihapus.</div>
-        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-danger" id="confirmDeleteTaskButton">Hapus Tugas</button></div>
-    </div></div>
+<!-- ============================================================ -->
+<!-- Modal Form Upload/Bagikan Jawaban Baru -->
+<!-- ============================================================ -->
+<div class="modal fade" id="shareAnswerModal" tabindex="-1" aria-labelledby="shareAnswerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow rounded-4">
+            <form id="formShareAnswer" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="create">
+                <input type="hidden" name="taskId" value="<?= $taskId ?>">
+
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="shareAnswerModalLabel">Bagikan Jawaban Tugas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label for="newAnswerTitle" class="form-label fw-semibold">Judul Jawaban <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="newAnswerTitle" name="answerTitle" placeholder="Contoh: Jawaban Lengkap Bab 1-3" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="newAnswerNotes" class="form-label fw-semibold">Keterangan (Opsional)</label>
+                        <textarea class="form-control rounded-3" id="newAnswerNotes" name="answerNotes" rows="4" style="resize: none;" placeholder="Tuliskan catatan tambahan mengenai file atau metode pengerjaan..."></textarea>
+                    </div>
+
+                    <div class="mb-3 border rounded-3 p-3 bg-light">
+                        <label for="newAnswerAttachments" class="form-label fw-bold">Unggah Berkas</label>
+                        <input class="form-control mb-2" type="file" id="newAnswerAttachments" name="attachments[]" multiple>
+                        <div class="form-text small">Maksimal 10 file, total akumulasi ukuran maksimal 15MB.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-dark rounded-pill px-4 fw-semibold" id="btnSubmitShareAnswer">Bagikan Jawaban</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Modal Lihat / Edit Jawaban -->
+<!-- ============================================================ -->
+<div class="modal fade" id="viewAnswerModal" tabindex="-1" aria-labelledby="viewAnswerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 pb-2">
+                <div class="d-flex align-items-center gap-2 flex-grow-1" id="modalAnswerAuthorHeader">
+                    <img id="modalAnswerAuthorAvatar" src="" class="rounded-circle border" style="width: 38px; height: 38px; object-fit: cover;" alt="Avatar">
+                    <div>
+                        <div class="fw-bold text-dark fs-6" id="modalAnswerAuthorName"></div>
+                        <div class="text-muted small" id="modalAnswerDateMeta"></div>
+                    </div>
+                </div>
+
+                <!-- Menu Titik Tiga Jawaban -->
+                <div class="dropdown me-2">
+                    <button class="btn btn-sm btn-light rounded-circle shadow-none p-0 d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 34px; height: 34px;" title="Menu Jawaban">
+                        <i class="bi bi-three-dots-vertical fs-6 text-secondary"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+                        <li>
+                            <button class="dropdown-item py-2 small" type="button" id="btnCopyAnswerLink">
+                                <i class="bi bi-share me-2"></i>Bagikan URL
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item py-2 small text-danger d-none" type="button" id="btnDeleteOwnAnswer">
+                                <i class="bi bi-trash me-2"></i>Hapus Jawaban
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+
+            <!-- Konten Read-Only Jawaban (Untuk jawaban milik pengguna lain) -->
+            <div id="readOnlyAnswerContent" class="modal-body p-4 pt-2">
+                <h5 class="fw-bold text-dark mb-2" id="readOnlyAnswerTitle"></h5>
+                <div class="text-secondary mb-4" id="readOnlyAnswerNotes" style="white-space: pre-wrap; line-height: 1.6;"></div>
+
+                <div id="readOnlyAnswerFilesGrid" class="row g-3 row-cols-2 row-cols-md-3"></div>
+                <div class="text-muted fst-italic d-none" id="noAnswerFilesText">Tidak ada file lampiran.</div>
+            </div>
+
+            <!-- Konten Editable Jawaban (Otomatis aktif jika jawaban milik sendiri) -->
+            <form id="formEditAnswer" class="d-none" enctype="multipart/form-data">
+                <input type="hidden" name="_method" value="PUT">
+                <input type="hidden" name="answerId" id="editAnswerIdHidden" value="">
+
+                <div class="modal-body p-4 pt-2">
+                    <div class="mb-3">
+                        <label for="editAnswerTitleInput" class="form-label fw-semibold">Judul Jawaban <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="editAnswerTitleInput" name="answerTitle" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editAnswerNotesInput" class="form-label fw-semibold">Keterangan</label>
+                        <textarea class="form-control rounded-3" id="editAnswerNotesInput" name="answerNotes" rows="4" style="resize: none;"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Lampiran</label>
+                        <div id="editAnswerExistingFiles" class="list-group rounded-3 mb-2"></div>
+                    </div>
+
+                    <div class="mb-3 border rounded-3 p-3 bg-light">
+                        <label for="editAnswerNewAttachments" class="form-label fw-bold">Unggah Berkas</label>
+                        <input class="form-control mb-2" type="file" id="editAnswerNewAttachments" name="attachments[]" multiple>
+                        <div class="form-text small">Maksimal 10 file, total akumulasi ukuran maksimal 15MB.</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold" id="btnSaveAnswerEdit" disabled>Simpan Perubahan</button>
+                </div>
+            </form>
+
+            <div class="modal-footer border-0 pt-0" id="readOnlyAnswerFooter">
+                <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>

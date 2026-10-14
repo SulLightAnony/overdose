@@ -4,55 +4,6 @@
  * MODULE: Frontend View Material Detail (Detail Materi Pembelajaran)
  * FILE LOCATION: app/views/material_detail.php
  * ====================================================================================
- * 
- * TUJUAN (PURPOSE):
- * File ini menyediakan antarmuka pengguna (UI) lengkap untuk menampilkan detail dari
- * sebuah materi pembelajaran. Tampilan disamakan dengan detail tugas, namun TANPA 
- * tombol selesai, TANPA daftar mahasiswa selesai, dan TANPA kolom komentar.
- * Fokus utama adalah menyajikan deskripsi materi, informasi pengunggah & editor terakhir,
- * serta daftar multi-file lampiran yang dapat dibuka maupun diunduh langsung.
- * 
- * RELASI DENGAN FILE LAIN (FILE RELATIONS):
- * - Layout Wrapper: app/views/layout.php
- * - Auth Gatekeeper: app/api/auth/gatekeeper.php
- * - Backend API Endpoint: app/api/materials.php (Dipanggil via AJAX)
- * - Frontend Script Module: public/js/modules/material_detail.js
- * - Parent Navigation: app/views/course_detail.php?id=courseId
- * 
- * STRUCTURE & KOMPONEN UI (UI COMPONENTS):
- * 1. Navigation Header:
- *    - Tombol "Kembali ke Course" (Navigasi kembali ke `course_detail.php?id=courseId`).
- * 
- * 2. Header Card Informasi Materi (Top Section):
- *    - Nama Mata Kuliah & Kode Matkul.
- *    - Judul Materi Pembelajaran.
- *    - Tanggal dan Waktu Pengunggahan.
- * 
- * 3. Card Informasi Pembuat & Riwayat Editor (Author & Last Edit Metadata):
- *    - Avatar Pengunggah, Nama Pengunggah, Role Badge (Keroco/Sepuh/Primordial), Tanggal Unggah.
- *    - Informasi Editor Terakhir (jika `lastEditedByUserId` NOT NULL): 
- *      "Terakhir diubah oleh [Nama Editor] pada [Timestamp]".
- * 
- * 4. Card Deskripsi Materi & Multi-File Lampiran:
- *    - Teks Deskripsi / Catatan Materi (format paragraf/linebreaks).
- *    - Container Daftar File Lampiran (Multi-File Upload Results):
- *      Setiap file terlampir menyediakan 2 tombol aksi terpisah:
- *      * Tombol "Buka": Membuka file di tab baru browser (`target="_blank"`).
- *      * Tombol "Download": Mengunduh file langsung ke perangkat lokal (`download` attribute).
- * 
- * 5. Control Bar Action Buttons (Aksi Pengguna - Semua Role Keroco ke Atas):
- *    - Tombol "Edit Materi": Membuka modal edit materi (Judul, Deskripsi, Tambah File Lampiran).
- *    - Tombol "Hapus Materi": Memicu Soft-Delete baris data database + Hard-Delete file fisik via API `materials.php`.
- * 
- * 6. Modal Form Edit Materi:
- *    - Input Judul Materi, Input Deskripsi/Catatan Materi, serta Input Multi-File Lampiran Baru.
- * 
- * CARA KERJA SCRIPT FRONTEND:
- * - Mengambil ID Materi dari query parameter URL (`?id=X`).
- * - Mengirim request GET ke `app/api/materials.php?action=detail&materialId=X`.
- * - Jika data materi memiliki `deletionStatus = 1` (Soft-Deleted), tampilkan pesan "Materi ini telah dihapus oleh [userName] pada [timestamp]" dan blokir akses konten.
- * - Merender data materi dan daftar file lampiran ke elemen DOM.
- * - Mengelola request AJAX saat user mengklik "Simpan Perubahan" (Edit) atau "Hapus Materi".
  */
 
 require_once __DIR__ . '/../api/auth/gatekeeper.php';
@@ -66,119 +17,116 @@ ob_start();
 
 <div class="container-fluid p-0" id="material-detail-container" data-material-id="<?= $materialId ?>">
 
-    <!-- 1. Navigation Header -->
+    <!-- Navigation Header -->
     <div class="mb-3">
         <a href="#" id="backToCourseBtn" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
     </div>
 
-    <!-- Alert Container (Untuk pesan Soft-Delete/Error) -->
+    <!-- Alert Container -->
     <div id="alert-container"></div>
 
-    <!-- Skeleton Loader (Ditampilkan saat AJAX memuat data) -->
+    <!-- Skeleton Loader -->
     <div id="skeleton-loader" class="placeholder-glow">
-        <div class="card shadow-sm mb-4"><div class="card-body p-4"><h3 class="placeholder col-6 rounded mb-3"></h3><p class="placeholder col-4 rounded"></p></div></div>
-        <div class="card shadow-sm mb-4"><div class="card-body p-4"><p class="placeholder col-8 rounded"></p></div></div>
+        <div class="card shadow-sm mb-4 rounded-4 border-0 p-4"><div class="card-body"><h3 class="placeholder col-6 rounded mb-3"></h3><p class="placeholder col-4 rounded"></p></div></div>
+        <div class="card shadow-sm mb-4 rounded-4 border-0 p-4"><div class="card-body"><p class="placeholder col-8 rounded"></p></div></div>
     </div>
 
-    <!-- Wrapper Konten Utama (Disembunyikan sampai data berhasil dimuat) -->
+    <!-- Wrapper Konten Utama -->
     <div id="main-content-wrapper" class="d-none">
         
-        <!-- 2. Header Card Informasi Materi -->
-        <div class="card shadow-sm mb-4 border-0 border-start border-5 border-success">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
-                    <div>
-                        <span class="badge bg-secondary me-1" id="courseCodeBadge"></span>
-                        <span class="badge bg-success text-white">Materi</span>
-                    </div>
-                    <div class="text-muted small fw-bold" id="materialDateText">
-                        <!-- Tanggal unggah akan dirender JS -->
-                    </div>
-                </div>
-                <h2 class="card-title fw-bold mb-1" id="materialTitle"></h2>
-                <p class="text-muted mb-0" id="courseNameTitle"></p>
-            </div>
-        </div>
-
-        <!-- 3. Card Informasi Pembuat & Riwayat Editor -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                <div class="d-flex align-items-center">
-                    <img id="authorAvatar" src="" alt="Avatar Pengunggah" class="rounded-circle me-3 border" style="width: 50px; height: 50px; object-fit: cover;">
-                    <div>
-                        <h6 class="mb-1 fw-bold" id="authorName"></h6>
-                        <small class="text-muted" id="authorRole"></small>
+        <!-- 1. Banner Utama Informasi Materi (Desain Konsisten Mirip Course Detail Item Card) -->
+        <div class="card border-0 shadow-sm rounded-4 text-dark overflow-hidden mb-4 p-4" style="border-left: 5px solid #10b981 !important;">
+            <div class="d-flex align-items-start justify-content-between gap-3">
+                <div class="flex-grow-1">
+                    <div class="text-secondary small fw-semibold mb-1" id="courseNameTitle"></div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                        <i class="bi bi-journal-text text-success fs-3 me-1 align-middle"></i>
+                        <span class="fs-4 fw-bold text-dark align-middle" id="materialTitle"></span>
+                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-1 small fw-semibold align-middle">Materi</span>
                     </div>
                 </div>
-                <div class="text-md-end d-none" id="editorContainer">
-                    <small class="text-muted fst-italic" id="editorInfo"></small>
+
+                <!-- Menu Titik Tiga Aksi Banner di Sudut Kanan Atas -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light rounded-circle shadow-none p-0 d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 36px; height: 36px;" title="Menu Aksi">
+                        <i class="bi bi-three-dots-vertical fs-5 text-secondary"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+                        <li>
+                            <button class="dropdown-item py-2 small" type="button" data-share-url>
+                                <i class="bi bi-share me-2"></i>Bagikan URL
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item py-2 small d-none" type="button" id="btnDropdownEditMaterial" data-bs-toggle="modal" data-bs-target="#editMaterialModal">
+                                <i class="bi bi-pencil me-2"></i>Edit Materi
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item py-2 small text-danger d-none" type="button" id="btnDropdownDeleteMaterial">
+                                <i class="bi bi-trash me-2"></i>Hapus Materi
+                            </button>
+                        </li>
+                    </ul>
                 </div>
             </div>
+
+            <!-- Informasi Pembuat di Bagian Bawah Banner -->
+            <div class="mt-3 pt-2 border-top border-light-subtle text-muted small" id="bannerAuthorInfo"></div>
         </div>
 
-        <!-- 4. Card Deskripsi Materi & Multi-File Lampiran -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <h5 class="card-title fw-bold mb-3 border-bottom pb-2">Catatan / Deskripsi Materi</h5>
-                <div id="materialDescription" class="mb-4" style="white-space: pre-wrap; line-height: 1.6;"></div>
+        <!-- 2. Deskripsi Materi & Lampiran File (Satu Wrapper Card) -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <h5 class="fw-bold mb-3 border-bottom pb-2">Deskripsi Materi</h5>
+            <div id="materialDescription" class="text-secondary" style="white-space: pre-wrap; line-height: 1.6;"></div>
 
-                <h5 class="card-title fw-bold mb-3 border-bottom pb-2">Lampiran File Materi</h5>
-                <div id="materialFilesContainer" class="list-group">
-                    <!-- Item file akan di-render oleh JS -->
-                    <div class="text-muted fst-italic" id="noFilesText">Tidak ada lampiran file.</div>
-                </div>
-            </div>
-        </div>
+            <!-- Pemisah Garis Tipis Antara Deskripsi & Lampiran File -->
+            <div id="materialFilesDivider" class="border-top border-light-subtle my-4 d-none"></div>
 
-        <!-- 5. Control Bar Action Buttons -->
-        <div class="card shadow-sm mb-4 bg-light d-none" id="actionButtonsContainer">
-            <div class="card-body d-flex flex-wrap justify-content-end align-items-center gap-2">
-                <button class="btn btn-warning px-4" id="btnEditMaterial" data-bs-toggle="modal" data-bs-target="#editMaterialModal">Edit Materi</button>
-                <button class="btn btn-danger px-4" id="btnDeleteMaterial">Hapus Materi</button>
-                <button class="btn btn-outline-dark px-4" type="button" data-share-url>Bagikan</button>
-            </div>
+            <!-- Grid Lampiran File (Tanpa Teks Judul "Lampiran File") -->
+            <div id="materialFilesGrid" class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4"></div>
+            <div class="text-muted fst-italic d-none" id="noFilesText">Tidak ada lampiran file.</div>
         </div>
 
     </div>
 </div>
 
 <!-- ============================================================ -->
-<!-- 6. Modal Form Edit Materi -->
+<!-- Modal Form Edit Materi -->
 <!-- ============================================================ -->
 <div class="modal fade" id="editMaterialModal" tabindex="-1" aria-labelledby="editMaterialModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
+        <div class="modal-content border-0 shadow rounded-4">
             <form id="formEditMaterial" enctype="multipart/form-data">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editMaterialModalLabel">Edit Materi Pembelajaran</h5>
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="editMaterialModalLabel">Edit Materi Pembelajaran</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                 </div>
-                <div class="modal-body">
-                    <!-- Spoofing method untuk menangani request PUT via multi-part PHP -->
+                <div class="modal-body p-4">
                     <input type="hidden" name="_method" value="PUT">
                     <input type="hidden" name="materialId" value="<?= $materialId ?>">
                     
                     <div class="mb-3">
-                        <label for="editMaterialTitle" class="form-label">Judul Materi <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="editMaterialTitle" name="materialTitle" required>
+                        <label for="editMaterialTitle" class="form-label fw-semibold">Judul Materi <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="editMaterialTitle" name="materialTitle" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="editMaterialDescription" class="form-label">Catatan / Deskripsi Materi</label>
-                        <textarea class="form-control" id="editMaterialDescription" name="materialDescription" rows="5" style="resize:none"></textarea>
+                        <label for="editMaterialDescription" class="form-label fw-semibold">Catatan / Deskripsi Materi</label>
+                        <textarea class="form-control rounded-3" id="editMaterialDescription" name="materialDescription" rows="5" style="resize:none"></textarea>
                     </div>
 
-                    <div class="mb-3 border rounded p-3 bg-light">
+                    <div class="mb-3 border rounded-3 p-3 bg-light">
                         <label for="editMaterialAttachments" class="form-label fw-bold">Tambahkan File Lampiran Baru (Opsional)</label>
                         <input class="form-control mb-2" type="file" id="editMaterialAttachments" name="attachments[]" multiple>
-                        <div class="form-text">Maksimal 10 file, total akumulasi ukuran maksimal 15MB (PDF, Word, Excel, PPT, ZIP, dll). File yang sudah ada sebelumnya tidak akan terhapus.</div>
+                        <div class="form-text small">Maksimal 10 file, total akumulasi ukuran maksimal 15MB (PDF, Word, Excel, PPT, ZIP, dll). File lama tidak akan terhapus.</div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success" id="btnSubmitEditMaterial">Simpan Perubahan</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold" id="btnSubmitEditMaterial">Simpan Perubahan</button>
                 </div>
             </form>
         </div>

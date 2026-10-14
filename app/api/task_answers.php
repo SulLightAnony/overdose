@@ -279,6 +279,15 @@ try {
                 exit;
             }
 
+            // Validasi: Mahasiswa wajib menandai tugas selesai sebelum membagikan jawaban
+            $stmtCheckComp = $pdo->prepare('SELECT completionId FROM task_completions WHERE taskId = :taskId AND userId = :userId');
+            $stmtCheckComp->execute(['taskId' => $taskId, 'userId' => $userId]);
+            if (!$stmtCheckComp->fetchColumn()) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Anda harus menandai tugas ini selesai terlebih dahulu sebelum membagikan jawaban.']);
+                exit;
+            }
+
             $newlyCreatedFolderId = null;
             $newlyUploadedFileIds = [];
             $pdo->beginTransaction();
