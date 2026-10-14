@@ -26,18 +26,12 @@ ob_start();
                     <small class="text-white-50">Kelola daftar email terlarang, proteksi hierarki pemblokiran, dan sinkronisasi status akun.</small>
                 </div>
             </div>
-            <div class="d-flex align-items-center gap-2">
-                
-                <button type="button" class="btn btn-light rounded-pill btn-sm px-3 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#addBlacklistModal">
-                    <i class="bi bi-plus-circle me-1"></i>Tambah Blacklist
-                </button>
-            </div>
         </div>
     </div>
 
     <!-- Stats Overview Chips -->
     <div class="row g-3 mb-4" id="blacklistStatsContainer">
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
@@ -50,7 +44,7 @@ ob_start();
                 </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
@@ -63,35 +57,16 @@ ob_start();
                 </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-muted small fw-medium">Kunci Primordial</div>
-                        <h4 class="fw-bold text-primary mb-0 mt-1" id="statPrimordial">0</h4>
-                    </div>
-                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
-                        <i class="bi bi-shield-shaded fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-muted small fw-medium">Moderasi Sepuh</div>
-                        <h4 class="fw-bold text-secondary mb-0 mt-1" id="statSepuh">0</h4>
-                    </div>
-                    <div class="rounded-circle bg-secondary bg-opacity-10 text-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
-                        <i class="bi bi-shield-check fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div id="blacklistAlert"></div>
+
+    <!-- Action Button -->
+    <div class="d-flex justify-content-end mb-3">
+        <button type="button" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#addBlacklistModal">
+            <i class="bi bi-plus-circle me-1"></i>Tambah Blacklist
+        </button>
+    </div>
 
     <!-- Filter & Search Toolbar -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
@@ -121,18 +96,13 @@ ob_start();
                         <option value="regular">Blokir Biasa</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-2">
+                <div class="col-12 col-md-3">
                     <select id="filterSort" class="form-select bg-light border-0 py-2">
                         <option value="newest">Terbaru</option>
                         <option value="oldest">Terlama</option>
                         <option value="email_asc">Email (A-Z)</option>
                         <option value="email_desc">Email (Z-A)</option>
                     </select>
-                </div>
-                <div class="col-6 col-md-1 d-flex justify-content-end">
-                    <button type="button" id="btnResetBlacklistFilter" class="btn btn-outline-secondary rounded-pill btn-sm w-100 py-2" title="Reset Filter">
-                        <i class="bi bi-arrow-counterclockwise"></i>
-                    </button>
                 </div>
             </div>
         </div>
@@ -143,7 +113,7 @@ ob_start();
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
-                    <tr class="text-uppercase fs-7 text-secondary fw-semibold">
+                    <tr class="fs-7 text-secondary fw-semibold">
                         <th class="ps-4 py-3" style="min-width: 200px;">Alamat Email</th>
                         <th class="py-3" style="min-width: 140px;">Status Terdaftar</th>
                         <th class="py-3" style="min-width: 120px;">Tipe Blokir</th>
@@ -165,12 +135,7 @@ ob_start();
         </div>
 
         <!-- Pagination -->
-        <div class="card-footer bg-white border-0 py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2" id="blacklistPaginationContainer">
-            <small class="text-muted" id="blacklistPaginationInfo">Menampilkan 0 data</small>
-            <nav aria-label="Blacklist pagination">
-                <ul class="pagination pagination-sm mb-0 gap-1" id="blacklistPaginationList"></ul>
-            </nav>
-        </div>
+        <div class="card-footer bg-white border-top border-light py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2" id="blacklistPaginationContainer"></div>
     </div>
 </div>
 
@@ -194,9 +159,6 @@ ob_start();
                             Alamat Email <span class="text-danger">*</span>
                         </label>
                         <input type="email" class="form-control rounded-3" id="blacklistEmail" name="emailAddress" placeholder="nama@domain.com" required>
-                        <small class="text-muted d-block mt-1">
-                            Jika email terdaftar pada pengguna aktif di sistem, status akun akan otomatis disinkronkan menjadi Diblokir.
-                        </small>
                     </div>
 
                     <div class="mb-3">
@@ -204,39 +166,21 @@ ob_start();
                             Alasan Pemblokiran 
                             <?php if ($userRole === 'Sepuh'): ?>
                                 <span class="text-danger">* (Wajib diisi oleh Sepuh)</span>
-                            <?php else: ?>
-                                <span class="text-muted fw-normal">(Opsional untuk Primordial)</span>
                             <?php endif; ?>
                         </label>
-                        <textarea class="form-control rounded-3" id="blacklistReason" name="reasonDescription" rows="3" placeholder="Masukkan alasan pemblokiran email ini..."></textarea>
+                        <textarea class="form-control rounded-3" id="blacklistReason" name="reasonDescription" rows="3" placeholder="Masukkan alasan pemblokiran email ini..." style="resize: none;"></textarea>
                     </div>
 
                     <?php if ($userRole === 'Primordial'): ?>
-                    <div class="p-3 bg-light rounded-4 border mb-3">
-                        <label class="form-label fw-semibold text-dark mb-2">Tingkat Penguncian Blokir:</label>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="isHardBlock" id="blChoiceNormal" value="0" checked>
-                            <label class="form-check-label text-dark" for="blChoiceNormal">
-                                <strong>Blokir Biasa</strong>
-                                <span class="d-block text-muted small">Moderator Sepuh masih memiliki hak untuk membuka blokir email ini.</span>
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="isHardBlock" id="blChoiceHard" value="1">
-                            <label class="form-check-label text-dark" for="blChoiceHard">
-                                <strong class="text-danger"><i class="bi bi-shield-lock-fill me-1"></i>Hard Block (Keras)</strong>
-                                <span class="d-block text-muted small">Email diblokir keras secara permanen oleh Primordial. Sepuh tidak akan bisa membuka atau menghapus blokir ini.</span>
-                            </label>
-                        </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="blCheckHardBlock" name="isHardBlock" value="1">
+                        <label class="form-check-label text-dark fw-semibold" for="blCheckHardBlock">
+                            Hard Block
+                        </label>
                     </div>
                     <?php else: ?>
                     <input type="hidden" name="isHardBlock" value="0">
                     <?php endif; ?>
-
-                    <div class="alert alert-secondary border-0 rounded-3 mb-0 small text-secondary">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Akun dengan role <strong>Primordial</strong> kebal dari pemblokiran. Sepuh tidak dapat memblacklist sesama Sepuh.
-                    </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-dark rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
@@ -264,13 +208,13 @@ ob_start();
             </div>
             <div class="modal-body py-4">
                 <p class="text-dark mb-2">
-                    Apakah kamu yakin ingin menghapus <strong id="deleteBlacklistEmailText" class="text-primary">-</strong> dari daftar blacklist dan kembali mengaktifkan akun ini?
+                    Apakah kamu yakin ingin menghapus <strong id="deleteBlacklistEmailText" class="text-primary">-</strong> dari daftar blacklist dan mengaktifkan akun ini?
                 </p>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
                 <button type="button" class="btn btn-danger rounded-pill px-4 fw-semibold" id="btnConfirmDeleteBlacklist">
-                    <i class="bi bi-unlock-fill me-1"></i>Hapus & Aktifkan
+                    <i class="bi bi-unlock-fill me-1"></i>Unblock
                 </button>
             </div>
         </div>

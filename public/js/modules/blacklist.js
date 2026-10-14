@@ -8,13 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetBtn = document.getElementById('btnResetBlacklistFilter');
 
     const paginationContainer = document.getElementById('blacklistPaginationContainer');
-    const paginationInfo = document.getElementById('blacklistPaginationInfo');
-    const paginationList = document.getElementById('blacklistPaginationList');
 
     const statTotal = document.getElementById('statTotalBlacklist');
     const statHardBlock = document.getElementById('statHardBlock');
-    const statPrimordial = document.getElementById('statPrimordial');
-    const statSepuh = document.getElementById('statSepuh');
 
     const formAdd = document.getElementById('formAddBlacklist');
     const btnSubmitAdd = document.getElementById('btnSubmitBlacklist');
@@ -59,6 +55,24 @@ document.addEventListener('DOMContentLoaded', () => {
         alertBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
+    function showToast(message, type = 'success') {
+        if (window.appToast) {
+            window.appToast(message, type);
+        } else {
+            showAlert(message, type);
+        }
+    }
+
+    function hardScrollToPagination(container) {
+        if (!container) return;
+        const targetId = container.id || 'blacklistPaginationContainer';
+        window.location.hash = targetId;
+        container.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+        setTimeout(() => {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }, 150);
+    }
+
     function formatDate(dateStr) {
         if (!dateStr) return '-';
         try {
@@ -97,8 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!summary) return;
         if (statTotal) statTotal.textContent = Number(summary.totalBlacklist || 0).toLocaleString('id-ID');
         if (statHardBlock) statHardBlock.textContent = Number(summary.totalHardBlock || 0).toLocaleString('id-ID');
-        if (statPrimordial) statPrimordial.textContent = Number(summary.primordialCount || 0).toLocaleString('id-ID');
-        if (statSepuh) statSepuh.textContent = Number(summary.sepuhCount || 0).toLocaleString('id-ID');
     }
 
     function renderTable(items) {
@@ -120,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = escapeHtml(item.emailAddress);
             const reason = escapeHtml(item.reasonDescription || '-');
             const adminName = escapeHtml(item.addedByName || 'Sistem');
-            const role = escapeHtml(item.blockedByRole || '-');
             const isHardBlock = Number(item.isHardBlock) === 1;
             const isRegistered = Boolean(item.isRegistered);
             const canDelete = Boolean(item.canDelete);
@@ -148,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isHardBlock) {
                 blockTypeBadge = `
                     <span class="badge bg-danger text-white rounded-pill px-3 py-1 fw-semibold shadow-sm">
-                        <i class="bi bi-shield-lock-fill me-1"></i>Hard Block
+                        <i class="bi bi-shield-lock-fill me-1"></i>Hard
                     </span>
                 `;
             } else {
@@ -180,83 +191,62 @@ document.addEventListener('DOMContentLoaded', () => {
             return `
                 <tr>
                     <td class="ps-4 py-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="rounded-circle bg-danger bg-opacity-10 p-2 text-danger flex-shrink-0" style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
-                                <i class="bi bi-envelope-slash-fill"></i>
-                            </div>
-                            <span class="fw-semibold text-dark">${email}</span>
-                        </div>
+                        <span class="fw-semibold text-dark" style="font-size: 0.85rem;">${email}</span>
                     </td>
                     <td class="py-3">${registeredBadge}</td>
                     <td class="py-3">${blockTypeBadge}</td>
                     <td class="py-3">
-                        <div class="text-truncate" style="max-width: 250px;" title="${reason}">
+                        <div class="text-truncate text-secondary" style="max-width: 250px; font-size: 0.82rem;" title="${reason}">
                             ${reason !== '-' ? reason : '<span class="text-muted fst-italic">Tanpa alasan</span>'}
                         </div>
                     </td>
                     <td class="py-3">
                         <div class="fw-medium text-dark small">${adminName}</div>
                     </td>
-                    <td class="py-3 small text-muted">${formatDate(item.createdAt)}</td>
+                    <td class="py-3 text-muted" style="font-size: 0.78rem;">${formatDate(item.createdAt)}</td>
                     <td class="pe-4 py-3 text-end">${actionBtn}</td>
                 </tr>
             `;
         }).join('');
     }
 
-    function renderPagination(pagination) {
-        if (!paginationContainer || !paginationInfo || !paginationList) return;
+    function renderPagination(pg) {
+        if (!paginationContainer) return;
 
-        const { totalItems, totalPages, currentPage: activePage, limit } = pagination;
-
-        if (totalItems === 0) {
-            paginationInfo.textContent = 'Menampilkan 0 data';
-            paginationList.innerHTML = '';
+        if (!pg || pg.totalItems === 0) {
+            paginationContainer.innerHTML = `<span class="small text-muted">Menampilkan 0 data blacklist</span>`;
             return;
         }
 
-        const start = ((activePage - 1) * limit) + 1;
-        const end = Math.min(activePage * limit, totalItems);
-        paginationInfo.textContent = `Menampilkan ${start}-${end} dari ${totalItems} data blacklist`;
-
-        let listHtml = '';
-
-        // Previous button
-        listHtml += `
-            <li class="page-item ${activePage <= 1 ? 'disabled' : ''}">
-                <button class="page-link rounded-pill border-0 px-3 ${activePage <= 1 ? 'text-muted' : 'text-dark'}" data-page="${activePage - 1}">
-                    <i class="bi bi-chevron-left"></i>
-                </button>
-            </li>
-        `;
-
-        const maxButtons = 5;
-        let startPage = Math.max(1, activePage - 2);
-        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
-        if (endPage - startPage < maxButtons - 1) {
-            startPage = Math.max(1, endPage - maxButtons + 1);
+        if (pg.totalPages <= 1) {
+            paginationContainer.innerHTML = `<span class="small text-muted">Menampilkan ${pg.totalItems} data blacklist</span>`;
+            return;
         }
 
-        for (let p = startPage; p <= endPage; p++) {
-            listHtml += `
-                <li class="page-item ${p === activePage ? 'active' : ''}">
-                    <button class="page-link rounded-circle border-0 ${p === activePage ? 'bg-dark text-white fw-bold' : 'text-dark'}" data-page="${p}" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-                        ${p}
-                    </button>
-                </li>
-            `;
+        let html = `<div class="small text-muted">Halaman ${pg.currentPage} dari ${pg.totalPages} (${pg.totalItems} total blacklist)</div>`;
+        html += `<ul class="pagination pagination-sm mb-0">`;
+
+        // Prev
+        html += `<li class="page-item ${pg.currentPage <= 1 ? 'disabled' : ''}">
+            <button class="page-link rounded-pill px-3 me-1" data-page="${pg.currentPage - 1}">&laquo;</button>
+        </li>`;
+
+        const start = Math.max(1, pg.currentPage - 2);
+        const end = Math.min(pg.totalPages, pg.currentPage + 2);
+
+        for (let p = start; p <= end; p++) {
+            html += `<li class="page-item ${p === pg.currentPage ? 'active' : ''}">
+                <button class="page-link rounded-circle mx-0.5 text-center" style="width: 32px; height: 32px; padding: 0; line-height: 32px;" data-page="${p}">${p}</button>
+            </li>`;
         }
 
-        // Next button
-        listHtml += `
-            <li class="page-item ${activePage >= totalPages ? 'disabled' : ''}">
-                <button class="page-link rounded-pill border-0 px-3 ${activePage >= totalPages ? 'text-muted' : 'text-dark'}" data-page="${activePage + 1}">
-                    <i class="bi bi-chevron-right"></i>
-                </button>
-            </li>
-        `;
+        // Next
+        html += `<li class="page-item ${pg.currentPage >= pg.totalPages ? 'disabled' : ''}">
+            <button class="page-link rounded-pill px-3 ms-1" data-page="${pg.currentPage + 1}">&raquo;</button>
+        </li>`;
 
-        paginationList.innerHTML = listHtml;
+        html += `</ul>`;
+        paginationContainer.innerHTML = html;
     }
 
     async function loadBlacklist() {
@@ -341,15 +331,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Pagination click listener
-    if (paginationList) {
-        paginationList.addEventListener('click', event => {
-            const btn = event.target.closest('button[data-page]');
-            if (!btn) return;
+    // Pagination click listener with hard scroll
+    if (paginationContainer) {
+        paginationContainer.addEventListener('click', async event => {
+            const btn = event.target.closest('[data-page]');
+            if (!btn || btn.parentElement.classList.contains('disabled')) return;
             const targetPage = parseInt(btn.dataset.page, 10);
-            if (targetPage && targetPage !== currentPage && targetPage > 0) {
+            if (targetPage && targetPage > 0 && targetPage !== currentPage) {
                 currentPage = targetPage;
-                loadBlacklist();
+                await loadBlacklist();
+                hardScrollToPagination(paginationContainer);
             }
         });
     }
@@ -360,11 +351,13 @@ document.addEventListener('DOMContentLoaded', () => {
             event.preventDefault();
             const emailInput = document.getElementById('blacklistEmail');
             const reasonInput = document.getElementById('blacklistReason');
-            const isHardBlockInput = formAdd.querySelector('input[name="isHardBlock"]:checked') || formAdd.querySelector('input[name="isHardBlock"]');
+            const hardBlockInput = formAdd.querySelector('#blCheckHardBlock') || formAdd.querySelector('input[name="isHardBlock"]');
 
             const email = emailInput ? emailInput.value.trim() : '';
             const reason = reasonInput ? reasonInput.value.trim() : '';
-            const isHardBlock = isHardBlockInput ? isHardBlockInput.value : '0';
+            const isHardBlock = (hardBlockInput && hardBlockInput.type === 'checkbox')
+                ? (hardBlockInput.checked ? 1 : 0)
+                : Number(hardBlockInput?.value || 0);
 
             if (!email) {
                 showAlert('Alamat email wajib diisi.', 'warning');
@@ -390,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         action: 'add_blacklist',
                         emailAddress: email,
                         reasonDescription: reason,
-                        isHardBlock: isHardBlock === '1' ? 1 : 0
+                        isHardBlock: isHardBlock === 1 ? 1 : 0
                     })
                 });
 
@@ -398,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     addModal.hide();
                 }
                 formAdd.reset();
-                showAlert(response.message || 'Email berhasil ditambahkan ke blacklist.', 'success');
+                showToast(response.message || 'Alamat email berhasil ditambahkan ke daftar blacklist.', 'success');
                 currentPage = 1;
                 await loadBlacklist();
             } catch (error) {
@@ -406,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 if (btnSubmitAdd) {
                     btnSubmitAdd.disabled = false;
-                    btnSubmitAdd.innerHTML = '<i class="bi bi-shield-plus me-1"></i>Simpan Blacklist';
+                    btnSubmitAdd.innerHTML = '<i class="bi bi-shield-plus me-1"></i>Blacklist Akun';
                 }
             }
         });
@@ -452,7 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (confirmModal) {
                     confirmModal.hide();
                 }
-                showAlert(response.message || 'Email berhasil dihapus dari blacklist.', 'success');
+                showToast(response.message || 'Email berhasil dihapus dari blacklist.', 'success');
                 pendingDeleteId = null;
                 await loadBlacklist();
             } catch (error) {

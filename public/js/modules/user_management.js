@@ -238,6 +238,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function hardScrollToPagination(container) {
+        if (!container) return;
+        const targetId = container.id || 'userPaginationContainer';
+        window.location.hash = targetId;
+        container.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+        setTimeout(() => {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }, 150);
+    }
+
     function renderPagination(pg) {
         if (!paginationContainer) return;
         if (pg.totalPages <= 1) {
@@ -250,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Prev
         html += `<li class="page-item ${pg.currentPage <= 1 ? 'disabled' : ''}">
-            <button class="page-link rounded-pill px-3 me-1" data-page="${pg.currentPage - 1}">Sebelumnya</button>
+            <button class="page-link rounded-pill px-3 me-1" data-page="${pg.currentPage - 1}">&laquo;</button>
         </li>`;
 
         const start = Math.max(1, pg.currentPage - 2);
@@ -264,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Next
         html += `<li class="page-item ${pg.currentPage >= pg.totalPages ? 'disabled' : ''}">
-            <button class="page-link rounded-pill px-3 ms-1" data-page="${pg.currentPage + 1}">Selanjutnya</button>
+            <button class="page-link rounded-pill px-3 ms-1" data-page="${pg.currentPage + 1}">&raquo;</button>
         </li>`;
 
         html += `</ul>`;
@@ -272,11 +282,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (paginationContainer) {
-        paginationContainer.addEventListener('click', e => {
+        paginationContainer.addEventListener('click', async e => {
             const btn = e.target.closest('[data-page]');
             if (!btn || btn.parentElement.classList.contains('disabled')) return;
-            currentPage = Number(btn.dataset.page);
-            loadUsers();
+            const targetPage = Number(btn.dataset.page);
+            if (targetPage && targetPage > 0 && targetPage !== currentPage) {
+                currentPage = targetPage;
+                await loadUsers();
+                hardScrollToPagination(paginationContainer);
+            }
         });
     }
 

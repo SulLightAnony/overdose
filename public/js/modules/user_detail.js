@@ -347,12 +347,26 @@ document.addEventListener('DOMContentLoaded', () => {
         paginationContainer.innerHTML = html;
     }
 
+    function hardScrollToPagination(container) {
+        if (!container) return;
+        const targetId = container.id || 'activityPaginationContainer';
+        window.location.hash = targetId;
+        container.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+        setTimeout(() => {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }, 150);
+    }
+
     if (paginationContainer) {
-        paginationContainer.addEventListener('click', e => {
+        paginationContainer.addEventListener('click', async e => {
             const btn = e.target.closest('[data-page]');
             if (!btn || btn.parentElement.classList.contains('disabled')) return;
-            currentActivityPage = Number(btn.dataset.page);
-            loadActivities();
+            const targetPage = Number(btn.dataset.page);
+            if (targetPage && targetPage > 0 && targetPage !== currentActivityPage) {
+                currentActivityPage = targetPage;
+                await loadActivities();
+                hardScrollToPagination(paginationContainer);
+            }
         });
     }
 
