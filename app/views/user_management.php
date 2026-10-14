@@ -13,7 +13,7 @@ ob_start();
 <div class="container-fluid p-0">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold text-dark mb-1">Manajemen Pengguna</h4>
+            <h4 class="fw-bold text-dark mb-1"><i class="bi bi-people-fill"></i> Manajemen Pengguna</h4>
             <p class="text-secondary small mb-0">Kelola role dan status akses pengguna.</p>
         </div>
         <input type="search" class="form-control form-control-sm" id="searchUser" placeholder="Cari nama/email..." style="max-width: 240px;">

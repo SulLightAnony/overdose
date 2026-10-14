@@ -271,6 +271,8 @@ class DriveManager
             'jpg'  => ['image/jpeg', 'image/pjpeg'],
             'jpeg' => ['image/jpeg', 'image/pjpeg'],
             'png'  => ['image/png', 'image/x-png'],
+            'webp' => ['image/webp'],
+            'gif'  => ['image/gif'],
             'zip'  => ['application/zip', 'application/x-zip-compressed', 'application/x-zip', 'application/octet-stream', 'multipart/x-zip'],
             'rar'  => ['application/x-rar-compressed', 'application/octet-stream', 'application/vnd.rar']
         ];

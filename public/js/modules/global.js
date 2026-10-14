@@ -765,14 +765,150 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------------------------------
-    // GLOBAL NEWS MODULE (CRUD for global_news table)
+    // GLOBAL NEWS MODULE (CRUD for global_news table with Drive upload)
     // ------------------------------------------------------------------
+    const globalNewsImageInput = document.getElementById('globalNewsImageInput');
+    const globalNewsImagePreviewContainer = document.getElementById('globalNewsImagePreviewContainer');
+    const globalNewsImagePreviewImg = document.getElementById('globalNewsImagePreviewImg');
+    const globalNewsImagePreviewName = document.getElementById('globalNewsImagePreviewName');
+    const globalNewsImagePreviewSize = document.getElementById('globalNewsImagePreviewSize');
+    const btnRemoveGlobalNewsImage = document.getElementById('btnRemoveGlobalNewsImage');
+    const globalNewsRemoveImage = document.getElementById('globalNewsRemoveImage');
+
+    const imagePreviewModalEl = document.getElementById('imagePreviewModal');
+    const imagePreviewModal = imagePreviewModalEl ? bootstrap.Modal.getOrCreateInstance(imagePreviewModalEl) : null;
+    const modalImg = document.getElementById('imagePreviewImg');
+    const modalImgTitle = document.getElementById('imagePreviewTitle');
+
+    function getThumbnailUrl(imageUrl, width = 450) {
+        if (!imageUrl) return '';
+        if (imageUrl.includes('drive.google.com/thumbnail')) {
+            if (/sz=[ws]\d+/i.test(imageUrl)) {
+                return imageUrl.replace(/sz=[ws]\d+/i, `sz=w${width}`);
+            }
+            return imageUrl + `&sz=w${width}`;
+        }
+        if (imageUrl.includes('lh3.googleusercontent.com/d/')) {
+            return imageUrl.replace(/=[ws]\d+/i, '') + `=w${width}`;
+        }
+        return imageUrl;
+    }
+
+    function getFullImageUrl(imageUrl) {
+        if (!imageUrl) return '';
+        if (imageUrl.includes('drive.google.com/thumbnail')) {
+            if (/sz=[ws]\d+/i.test(imageUrl)) {
+                return imageUrl.replace(/sz=[ws]\d+/i, 'sz=w1600');
+            }
+            return imageUrl + '&sz=w1600';
+        }
+        return imageUrl;
+    }
+
+    function initLazyImages(container = document) {
+        const lazyImages = container.querySelectorAll('img.news-lazy-img[data-src]');
+        if (!lazyImages.length) return;
+
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries, obs) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        const src = img.getAttribute('data-src');
+                        if (src) {
+                            img.src = src;
+                            img.removeAttribute('data-src');
+                            img.onload = () => {
+                                img.style.opacity = '1';
+                                const placeholder = img.parentElement?.querySelector('.news-image-placeholder');
+                                if (placeholder) placeholder.remove();
+                            };
+                            img.onerror = () => {
+                                const placeholder = img.parentElement?.querySelector('.news-image-placeholder');
+                                if (placeholder) {
+                                    placeholder.style.animation = 'none';
+                                    placeholder.innerHTML = '<span class="small text-muted opacity-50"><i class="bi bi-exclamation-circle me-1"></i>Gagal memuat</span>';
+                                }
+                            };
+                        }
+                        obs.unobserve(img);
+                    }
+                });
+            }, {
+                rootMargin: '100px 0px',
+                threshold: 0.01
+            });
+
+            lazyImages.forEach(img => observer.observe(img));
+        } else {
+            lazyImages.forEach(img => {
+                img.src = img.getAttribute('data-src');
+                img.style.opacity = '1';
+                const placeholder = img.parentElement?.querySelector('.news-image-placeholder');
+                if (placeholder) placeholder.remove();
+            });
+        }
+    }
+
     function resetGlobalNewsForm() {
         if (!globalNewsForm) return;
         globalNewsForm.reset();
         document.getElementById('globalNewsId').value = '';
         document.getElementById('globalNewsModalTitle').textContent = 'Tulis Berita Global';
-        document.getElementById('submitGlobalNews').textContent = 'Terbitkan';
+        document.getElementById('submitGlobalNews').innerHTML = 'Terbitkan';
+        if (globalNewsRemoveImage) globalNewsRemoveImage.value = '0';
+        if (globalNewsImagePreviewContainer) {
+            globalNewsImagePreviewContainer.classList.add('d-none');
+            globalNewsImagePreviewContainer.classList.remove('d-flex');
+        }
+        if (globalNewsImagePreviewImg) globalNewsImagePreviewImg.src = '';
+    }
+
+    if (globalNewsImageInput) {
+        globalNewsImageInput.addEventListener('change', () => {
+            const file = globalNewsImageInput.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                notify('Hanya berkas gambar (JPG, PNG, WEBP) yang diizinkan.', 'danger');
+                globalNewsImageInput.value = '';
+                return;
+            }
+
+            if (file.size > 1024 * 1024) {
+                notify('Ukuran gambar tidak boleh melebihi 1 MB.', 'danger');
+                globalNewsImageInput.value = '';
+                return;
+            }
+
+            if (globalNewsRemoveImage) globalNewsRemoveImage.value = '0';
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (globalNewsImagePreviewImg) globalNewsImagePreviewImg.src = e.target.result;
+                if (globalNewsImagePreviewName) globalNewsImagePreviewName.textContent = file.name;
+                if (globalNewsImagePreviewSize) {
+                    const sizeStr = file.size < 1024 * 1024 ? (file.size / 1024).toFixed(1) + ' KB' : (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                    globalNewsImagePreviewSize.textContent = sizeStr;
+                }
+                if (globalNewsImagePreviewContainer) {
+                    globalNewsImagePreviewContainer.classList.remove('d-none');
+                    globalNewsImagePreviewContainer.classList.add('d-flex');
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    if (btnRemoveGlobalNewsImage) {
+        btnRemoveGlobalNewsImage.addEventListener('click', () => {
+            if (globalNewsImageInput) globalNewsImageInput.value = '';
+            if (globalNewsRemoveImage) globalNewsRemoveImage.value = '1';
+            if (globalNewsImagePreviewContainer) {
+                globalNewsImagePreviewContainer.classList.add('d-none');
+                globalNewsImagePreviewContainer.classList.remove('d-flex');
+            }
+            if (globalNewsImagePreviewImg) globalNewsImagePreviewImg.src = '';
+        });
     }
 
     async function loadGlobalNews() {
@@ -784,7 +920,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success && Array.isArray(result.data)) {
                 const newsList = result.data;
                 if (newsList.length === 0) {
-                    newsContainer.innerHTML = '<div class="col-12 text-center text-muted py-5 small">Belum ada berita global. Klik "Tulis Berita" untuk menerbitkan.</div>';
+                    newsContainer.innerHTML = `
+                        <div class="col-12 text-center text-muted py-5 small">
+                            <i class="bi bi-newspaper fs-1 text-secondary opacity-50 d-block mb-2"></i>
+                            Belum ada berita global. Klik "Tulis Berita" untuk menerbitkan.
+                        </div>`;
                     return;
                 }
 
@@ -796,35 +936,75 @@ document.addEventListener('DOMContentLoaded', () => {
                         day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                     }) : '-';
                     const avatar    = article.author_avatar ? article.author_avatar : defaultAvatar;
+                    const hasImage  = Boolean(article.image_url);
+                    const thumbUrl  = hasImage ? getThumbnailUrl(article.image_url, 450) : '';
+                    const fullImageUrl = hasImage ? getFullImageUrl(article.image_url) : '';
 
                     html += `
-                        <div class="col-md-6 col-xl-4">
-                            <article class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
-                                <div class="card-body d-flex flex-column p-4">
-                                    <h5 class="card-title fw-bold text-dark mb-3 fs-6">${escapeHTML(article.title)}</h5>
-                                    <div class="text-secondary small text-break flex-grow-1 mb-3" style="white-space: pre-wrap; line-height: 1.6;">${escapeHTML(article.content)}</div>
-                                    <div class="d-flex align-items-center justify-content-between pt-3 border-top border-light mt-auto flex-wrap gap-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <img src="${escapeHTML(avatar)}" alt="Author" class="rounded-circle border" style="width: 30px; height: 30px; object-fit: cover;" referrerpolicy="no-referrer">
-                                            <div>
-                                                <span class="fw-semibold text-dark small me-1" style="font-size: 0.8rem;">${escapeHTML(article.author_name || 'Pengguna')}</span>
-                                                ${renderRoleBadge(article.author_role)}
-                                            </div>
+                        <div class="col-md-6 col-xl-4" id="news-${Number(article.id)}">
+                            <article class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden d-flex flex-column news-card" style="transition: transform 0.2s ease, box-shadow 0.2s ease;">
+                                ${hasImage ? `
+                                    <div class="position-relative overflow-hidden d-flex align-items-center justify-content-center p-2" style="height: 185px; background-color: #f8fafc; border-bottom: 1px solid #f1f5f9; cursor: pointer;" data-preview-image="${escapeHTML(fullImageUrl)}" data-preview-title="${escapeHTML(article.title)}" title="Klik untuk memperbesar">
+                                        <div class="news-image-placeholder position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center text-muted" style="background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: newsShimmer 1.5s infinite;">
+                                            <i class="bi bi-image fs-3 opacity-25"></i>
                                         </div>
-                                        <span class="text-muted small" style="font-size: 0.72rem;">${escapeHTML(dateStr)}</span>
+                                        <img data-src="${escapeHTML(thumbUrl)}" alt="${escapeHTML(article.title)}" class="w-100 h-100 news-lazy-img" style="object-fit: contain; max-height: 100%; max-width: 100%; opacity: 0; transition: opacity 0.3s ease;" referrerpolicy="no-referrer">
+                                        <div class="position-absolute top-0 end-0 m-2" style="z-index: 2;">
+                                            <span class="badge bg-dark bg-opacity-75 rounded-pill px-2.5 py-1 small" style="backdrop-filter: blur(4px); font-size: 0.72rem;">
+                                                <i class="bi bi-zoom-in me-1"></i>Perbesar
+                                            </span>
+                                        </div>
                                     </div>
+                                ` : ''}
+
+                                <!-- Author Header -->
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <img src="${escapeHTML(avatar)}" alt="${escapeHTML(article.author_name || 'Pengguna')}" class="rounded-circle border flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;" referrerpolicy="no-referrer" onerror="this.src='${defaultAvatar}'">
+                                    <div class="min-w-0 flex-grow-1">
+                                        <div class="fw-bold text-dark text-truncate" style="font-size: 0.85rem;" title="${escapeHTML(article.author_name || 'Pengguna')}">
+                                            ${escapeHTML(article.author_name || 'Pengguna')}
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            ${renderRoleBadge(article.author_role)}
+                                            <span class="text-muted" style="font-size: 0.72rem;">
+                                                <i class="bi bi-clock me-1"></i>${escapeHTML(dateStr)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- News Title -->
+                                <h5 class="card-title fw-bold text-dark mb-2 fs-6 text-break">
+                                    ${escapeHTML(article.title)}
+                                </h5>
+
+                                <!-- News Content -->
+                                <div class="text-secondary small text-break flex-grow-1 mb-3 news-content" style="white-space: pre-wrap; line-height: 1.6;">${escapeHTML(article.content)}</div>
+
+                                <!-- Card Footer / Action Buttons -->
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top border-light mt-auto flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;" data-share-news="${Number(article.id)}" data-title="${escapeHTML(article.title)}">
+                                        <i class="bi bi-share" style="font-size: 0.75rem;"></i>Bagikan
+                                    </button>
+
                                     ${canManage ? `
-                                        <div class="d-flex gap-2 mt-3 pt-2 border-top border-light">
-                                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-edit-news="${article.id}" data-title="${escapeHTML(article.title)}">Edit</button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" data-delete-news="${article.id}">Hapus</button>
-                                        </div>` : ''}
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;" data-edit-news="${article.id}" data-title="${escapeHTML(article.title)}" data-image="${escapeHTML(article.image_url || '')}">
+                                                <i class="bi bi-pencil-square" style="font-size: 0.75rem;"></i>Edit
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger rounded-pill btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;" data-delete-news="${article.id}">
+                                                <i class="bi bi-trash3" style="font-size: 0.75rem;"></i>Hapus
+                                            </button>
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </article>
                         </div>`;
                 });
                 newsContainer.innerHTML = html;
+                initLazyImages(newsContainer);
             } else {
-                newsContainer.innerHTML = `<div class="col-12"><div class="alert alert-warning small">${escapeHTML(result.message || 'Gagal memuat berita.')}</div></div>`;
+                newsContainer.innerHTML = `<div class="col-12"><div class="alert alert-warning small rounded-3">${escapeHTML(result.message || 'Gagal memuat berita.')}</div></div>`;
             }
         } catch (error) {
             console.error('Gagal memuat berita global:', error);
@@ -842,55 +1022,120 @@ document.addEventListener('DOMContentLoaded', () => {
     if (globalNewsForm) {
         globalNewsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const submitBtn = document.getElementById('submitGlobalNews');
+            const originalText = submitBtn.innerHTML;
+
             const id      = document.getElementById('globalNewsId').value;
             const title   = document.getElementById('globalNewsTitle').value.trim();
             const content = document.getElementById('globalNewsContent').value.trim();
 
-            if (!title || !content) return;
+            if (!title || !content) {
+                notify('Judul dan isi berita wajib diisi.', 'danger');
+                return;
+            }
 
             const action = id ? 'update_news' : 'create_news';
-            const bodyPayload = { id, title, content };
+            const formData = new FormData();
+            if (id) formData.append('id', id);
+            formData.append('title', title);
+            formData.append('content', content);
+
+            if (globalNewsRemoveImage) {
+                formData.append('remove_image', globalNewsRemoveImage.value);
+            }
+
+            if (globalNewsImageInput && globalNewsImageInput.files && globalNewsImageInput.files[0]) {
+                formData.append('image', globalNewsImageInput.files[0]);
+            }
 
             try {
-                const response = await fetch(`${API_URL}?action=${action}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(bodyPayload)
-                });
-                const result = await response.json();
+                let result;
+                if (typeof window.uploadWithProgress === 'function') {
+                    result = await window.uploadWithProgress(`${API_URL}?action=${action}`, formData, submitBtn);
+                } else {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Memproses...`;
+                    const response = await fetch(`${API_URL}?action=${action}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    result = await response.json();
+                }
 
-                if (result.success) {
+                if (result && result.success) {
                     notify(result.message || 'Berita global disimpan.', 'success');
                     if (globalNewsModal) globalNewsModal.hide();
+                    resetGlobalNewsForm();
                     await loadGlobalNews();
                 } else {
-                    notify(result.message || 'Gagal menyimpan berita global.', 'danger');
+                    notify(result?.message || 'Gagal menyimpan berita global.', 'danger');
                 }
             } catch (error) {
-                notify('Terjadi kesalahan saat menyimpan berita global.', 'danger');
+                notify(error.message || 'Terjadi kesalahan saat menyimpan berita global.', 'danger');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
             }
         });
     }
 
     if (newsContainer) {
         newsContainer.addEventListener('click', async (e) => {
+            // Image Preview Modal Zoom
+            const previewEl = e.target.closest('[data-preview-image]');
+            if (previewEl && imagePreviewModal) {
+                const imgUrl = previewEl.dataset.previewImage;
+                const imgTitle = previewEl.dataset.previewTitle || 'Pratinjau Gambar';
+                if (modalImg) modalImg.src = imgUrl;
+                if (modalImgTitle) modalImgTitle.textContent = imgTitle;
+                imagePreviewModal.show();
+                return;
+            }
+
+            // Share News Button
+            const shareBtn = e.target.closest('[data-share-news]');
+            if (shareBtn) {
+                const shareUrl = `${BASE_URL}global#news-${shareBtn.dataset.shareNews}`;
+                try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    notify('Tautan berita global disalin ke clipboard.', 'success');
+                } catch (err) {
+                    notify(shareUrl, 'info');
+                }
+                return;
+            }
+
+            // Edit News Button
             const editBtn = e.target.closest('[data-edit-news]');
             if (editBtn) {
+                resetGlobalNewsForm();
                 const id = editBtn.dataset.editNews;
                 const title = editBtn.dataset.title;
+                const imageUrl = editBtn.dataset.image;
                 const card = editBtn.closest('article');
-                const content = card.querySelector('.text-break').textContent;
+                const content = card ? card.querySelector('.news-content').textContent : '';
 
                 document.getElementById('globalNewsId').value = id;
                 document.getElementById('globalNewsTitle').value = title;
                 document.getElementById('globalNewsContent').value = content;
                 document.getElementById('globalNewsModalTitle').textContent = 'Edit Berita Global';
-                document.getElementById('submitGlobalNews').textContent = 'Simpan Perubahan';
+                document.getElementById('submitGlobalNews').innerHTML = 'Simpan Perubahan';
+
+                if (imageUrl) {
+                    if (globalNewsImagePreviewImg) globalNewsImagePreviewImg.src = imageUrl;
+                    if (globalNewsImagePreviewName) globalNewsImagePreviewName.textContent = 'Gambar Terlampir';
+                    if (globalNewsImagePreviewSize) globalNewsImagePreviewSize.textContent = 'Tersimpan di Cloud';
+                    if (globalNewsImagePreviewContainer) {
+                        globalNewsImagePreviewContainer.classList.remove('d-none');
+                        globalNewsImagePreviewContainer.classList.add('d-flex');
+                    }
+                }
 
                 if (globalNewsModal) globalNewsModal.show();
                 return;
             }
 
+            // Delete News Button
             const delBtn = e.target.closest('[data-delete-news]');
             if (delBtn) {
                 const id = delBtn.dataset.deleteNews;

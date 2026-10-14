@@ -108,7 +108,7 @@ ob_start();
                         </h6>
                         <small class="text-muted">Kabar dan pengumuman umum untuk seluruh anggota</small>
                     </div>
-                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold d-flex align-items-center gap-1 shadow-sm" id="openGlobalNewsForm">
+                    <button type="button" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" id="openGlobalNewsForm">
                         <i class="bi bi-plus-lg"></i>Tulis Berita
                     </button>
                 </div>
@@ -159,13 +159,14 @@ ob_start();
 <div class="modal fade" id="globalNewsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
-            <form id="globalNewsForm">
-                <div class="modal-header bg-primary text-white py-3 px-4">
+            <form id="globalNewsForm" enctype="multipart/form-data">
+                <div class="modal-header text-white py-3 px-4" style="background: linear-gradient(135deg, #1e293b, #334155);">
                     <h5 class="modal-title fw-bold fs-6" id="globalNewsModalTitle">Tulis Berita Global</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Tutup"></button>
                 </div>
                 <div class="modal-body p-4">
                     <input type="hidden" id="globalNewsId" name="id">
+                    <input type="hidden" id="globalNewsRemoveImage" name="remove_image" value="0">
                     <div class="mb-3">
                         <label class="form-label fw-semibold small text-dark" for="globalNewsTitle">Judul Berita</label>
                         <input class="form-control rounded-3" id="globalNewsTitle" name="title" maxlength="200" placeholder="Masukkan judul berita global..." required>
@@ -174,17 +175,62 @@ ob_start();
                         <label class="form-label fw-semibold small text-dark" for="globalNewsContent">Isi Berita</label>
                         <textarea class="form-control rounded-3" id="globalNewsContent" name="content" rows="6" placeholder="Tuliskan isi berita atau pengumuman..." style="resize: none;" required></textarea>
                     </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold small text-dark d-flex align-items-center justify-content-between mb-1" for="globalNewsImageInput">
+                            <span><i class="bi bi-image me-1 text-primary"></i>Gambar Berita <span class="text-muted fw-normal">(Opsional)</span></span>
+                            <span class="text-muted fw-normal" style="font-size: 0.72rem;">Maks 1 gambar (1 MB)</span>
+                        </label>
+                        <input type="file" class="form-control rounded-3" id="globalNewsImageInput" name="image" accept="image/jpeg,image/png,image/jpg,image/webp">
+                        <div class="form-text small text-muted mt-1" style="font-size: 0.72rem;">
+                            <i class="bi bi-info-circle me-1"></i>Format: JPG, PNG, WEBP. Maksimal 1 MB per postingan.
+                        </div>
+
+                        <!-- Image Preview Box -->
+                        <div id="globalNewsImagePreviewContainer" class="mt-2 p-2 border rounded-3 bg-light d-none align-items-center justify-content-between gap-2">
+                            <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                <img id="globalNewsImagePreviewImg" src="" alt="Preview" class="rounded border object-fit-cover flex-shrink-0" style="width: 48px; height: 48px;" referrerpolicy="no-referrer">
+                                <div class="min-w-0">
+                                    <div class="small fw-semibold text-truncate text-dark" id="globalNewsImagePreviewName">preview.jpg</div>
+                                    <div class="text-muted" style="font-size: 0.72rem;" id="globalNewsImagePreviewSize">-</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 flex-shrink-0" id="btnRemoveGlobalNewsImage">
+                                <i class="bi bi-x-circle me-1"></i>Hapus
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer bg-light px-4 py-3 border-top border-light">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary rounded-pill btn-sm px-4 fw-semibold" id="submitGlobalNews">Terbitkan</button>
+                    <button type="button" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" id="submitGlobalNews">
+                        Terbitkan
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- Modal Pratinjau Gambar Penuh -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden bg-dark text-white">
+            <div class="modal-header border-0 py-2 px-3 d-flex justify-content-between align-items-center bg-dark">
+                <h6 class="modal-title fw-semibold text-truncate small mb-0 text-white" id="imagePreviewTitle">Pratinjau Gambar</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body p-0 text-center bg-black d-flex align-items-center justify-content-center" style="min-height: 250px; max-height: 80vh;">
+                <img src="" id="imagePreviewImg" class="img-fluid" style="max-height: 80vh; object-fit: contain;" alt="Preview" referrerpolicy="no-referrer">
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
+@keyframes newsShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
 .chat-row {
     position: relative;
     margin-bottom: 0;

@@ -12,6 +12,7 @@ init_secure_session();
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/auth/gatekeeper.php';
+require_once __DIR__ . '/DriveManager.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -378,11 +379,88 @@ function handleDeleteChat(PDO $pdo, int $userId, bool $isAdmin, array $input): v
 // GLOBAL NEWS HANDLERS
 // ---------------------------------------------------------------------------
 
+function getGlobalNewsColumns(PDO $pdo): array
+{
+    static $cols = null;
+    if ($cols === null) {
+        try {
+            $stmt = $pdo->query("SHOW COLUMNS FROM global_news");
+            $cols = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+        } catch (Throwable $e) {
+            $cols = [];
+        }
+    }
+    return $cols;
+}
+
+function validateUploadedGlobalImage(array $file): void
+{
+    if ((int)($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return;
+    }
+    if ((int)$file['error'] !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('Gagal mengunggah berkas gambar.');
+    }
+    $maxSize = 1024 * 1024; // 1 MB
+    if ((int)$file['size'] > $maxSize) {
+        throw new RuntimeException('Ukuran gambar melebihi batas maksimal 1 MB.');
+    }
+    $cleanName = basename((string)$file['name']);
+    $ext = strtolower(pathinfo($cleanName, PATHINFO_EXTENSION));
+    $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    if (!in_array($ext, $allowedExts, true)) {
+        throw new RuntimeException('Format berkas tidak diizinkan. Hanya file gambar (JPG, PNG, WEBP, GIF).');
+    }
+    $finfo = @finfo_open(FILEINFO_MIME_TYPE);
+    $mime = false;
+    if ($finfo) {
+        $mime = finfo_file($finfo, $file['tmp_name']);
+    } elseif (function_exists('mime_content_type')) {
+        $mime = mime_content_type($file['tmp_name']);
+    }
+    $allowedMimes = ['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png', 'image/webp', 'image/gif'];
+    if ($mime && !in_array($mime, $allowedMimes, true)) {
+        throw new RuntimeException('Konten berkas bukan gambar yang valid.');
+    }
+}
+
+function uploadGlobalNewsImageToDrive(int $userId, int $newsId, array $file, ?string $existingFolderId = null, string $category = 'News'): array
+{
+    $driveManager = DriveManager::getInstance();
+    $folderId = $driveManager->resolveEntityFolder($category, $existingFolderId, $userId, $newsId);
+
+    $formattedFiles = [
+        'name'     => [$file['name']],
+        'type'     => [$file['type'] ?? 'image/jpeg'],
+        'tmp_name' => [$file['tmp_name']],
+        'error'    => [$file['error']],
+        'size'     => [$file['size']]
+    ];
+
+    $uploaded = $driveManager->uploadFiles($folderId, $formattedFiles);
+    if (empty($uploaded)) {
+        throw new RuntimeException('Gagal mengunggah gambar ke Google Drive.');
+    }
+
+    $fileId = $uploaded[0]['fileId'];
+    $imageUrl = "https://drive.google.com/thumbnail?id={$fileId}&sz=w1200";
+
+    return [
+        'fileId'   => $fileId,
+        'imageUrl' => $imageUrl,
+        'folderId' => $folderId
+    ];
+}
+
 function handleGetNews(PDO $pdo): void
 {
+    $cols = getGlobalNewsColumns($pdo);
+    $hasImage = in_array('image_url', $cols, true);
+    $imageSelect = $hasImage ? 'n.image_url, n.drive_file_id, n.drive_folder_id,' : 'NULL AS image_url, NULL AS drive_file_id, NULL AS drive_folder_id,';
+
     $stmt = $pdo->prepare("
         SELECT 
-            n.id, n.user_id, n.title, n.content, n.created_at,
+            n.id, n.user_id, n.title, n.content, {$imageSelect} n.created_at,
             u.userName AS author_name, u.avatarUrl AS author_avatar, u.roleLevel AS author_role
         FROM global_news n
         LEFT JOIN users u ON n.user_id = u.userId
@@ -406,8 +484,26 @@ function handleCreateNews(PDO $pdo, int $userId, array $input): void
         return;
     }
 
+    $hasImage = isset($_FILES['image']) && (int)($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+    if ($hasImage) {
+        validateUploadedGlobalImage($_FILES['image']);
+    }
+
     $stmt = $pdo->prepare("INSERT INTO global_news (user_id, title, content, created_at) VALUES (:userId, :title, :content, NOW())");
     $stmt->execute(['userId' => $userId, 'title' => $title, 'content' => $content]);
+    $newId = (int)$pdo->lastInsertId();
+
+    $cols = getGlobalNewsColumns($pdo);
+    if ($hasImage && in_array('image_url', $cols, true)) {
+        $uploadRes = uploadGlobalNewsImageToDrive($userId, $newId, $_FILES['image'], null, 'News');
+        $upStmt = $pdo->prepare("UPDATE global_news SET image_url = :img, drive_file_id = :fid, drive_folder_id = :fld WHERE id = :id");
+        $upStmt->execute([
+            'img' => $uploadRes['imageUrl'],
+            'fid' => $uploadRes['fileId'],
+            'fld' => $uploadRes['folderId'],
+            'id'  => $newId
+        ]);
+    }
 
     echo json_encode(['success' => true, 'status' => 'success', 'message' => 'Berita global berhasil diterbitkan.']);
 }
@@ -424,14 +520,50 @@ function handleUpdateNews(PDO $pdo, int $userId, bool $isAdmin, array $input): v
         return;
     }
 
-    $stmt = $pdo->prepare("UPDATE global_news SET title = :title, content = :content WHERE id = :id AND (user_id = :userId OR :isAdmin = 1)");
-    $stmt->execute(['title' => $title, 'content' => $content, 'id' => $id, 'userId' => $userId, 'isAdmin' => $isAdmin ? 1 : 0]);
+    $cols = getGlobalNewsColumns($pdo);
+    $hasImageCols = in_array('image_url', $cols, true);
 
-    if ($stmt->rowCount() === 0) {
+    $fetchStmt = $pdo->prepare($hasImageCols ? "SELECT id, user_id, drive_folder_id, drive_file_id FROM global_news WHERE id = :id" : "SELECT id, user_id FROM global_news WHERE id = :id");
+    $fetchStmt->execute(['id' => $id]);
+    $existing = $fetchStmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$existing || (!$isAdmin && (int)$existing['user_id'] !== $userId)) {
         http_response_code(403);
         echo json_encode(['success' => false, 'status' => 'error', 'message' => 'Berita tidak ditemukan atau Anda tidak berhak mengeditnya.']);
         return;
     }
+
+    $removeImage = !empty($input['remove_image']) && $input['remove_image'] !== '0';
+    $hasNewImage = isset($_FILES['image']) && (int)($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+
+    if ($removeImage && !$hasNewImage && $hasImageCols) {
+        if (!empty($existing['drive_file_id'])) {
+            try {
+                DriveManager::getInstance()->deleteFile($existing['drive_file_id']);
+            } catch (Throwable $e) {}
+        }
+        $pdo->prepare("UPDATE global_news SET image_url = NULL, drive_file_id = NULL WHERE id = :id")->execute(['id' => $id]);
+    }
+
+    if ($hasNewImage && $hasImageCols) {
+        validateUploadedGlobalImage($_FILES['image']);
+        if (!empty($existing['drive_file_id'])) {
+            try {
+                DriveManager::getInstance()->deleteFile($existing['drive_file_id']);
+            } catch (Throwable $e) {}
+        }
+        $uploadRes = uploadGlobalNewsImageToDrive($userId, $id, $_FILES['image'], $existing['drive_folder_id'] ?? null, 'News');
+        $pdo->prepare("UPDATE global_news SET image_url = :img, drive_file_id = :fid, drive_folder_id = :fld WHERE id = :id")
+            ->execute([
+                'img' => $uploadRes['imageUrl'],
+                'fid' => $uploadRes['fileId'],
+                'fld' => $uploadRes['folderId'],
+                'id'  => $id
+            ]);
+    }
+
+    $stmt = $pdo->prepare("UPDATE global_news SET title = :title, content = :content WHERE id = :id");
+    $stmt->execute(['title' => $title, 'content' => $content, 'id' => $id]);
 
     echo json_encode(['success' => true, 'status' => 'success', 'message' => 'Berita global diperbarui.']);
 }
@@ -445,14 +577,34 @@ function handleDeleteNews(PDO $pdo, int $userId, bool $isAdmin, array $input): v
         return;
     }
 
-    $stmt = $pdo->prepare("DELETE FROM global_news WHERE id = :id AND (user_id = :userId OR :isAdmin = 1)");
-    $stmt->execute(['id' => $id, 'userId' => $userId, 'isAdmin' => $isAdmin ? 1 : 0]);
+    $cols = getGlobalNewsColumns($pdo);
+    $hasImageCols = in_array('image_url', $cols, true);
 
-    if ($stmt->rowCount() === 0) {
+    $fetchStmt = $pdo->prepare($hasImageCols ? "SELECT id, user_id, drive_folder_id, drive_file_id FROM global_news WHERE id = :id" : "SELECT id, user_id FROM global_news WHERE id = :id");
+    $fetchStmt->execute(['id' => $id]);
+    $existing = $fetchStmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$existing || (!$isAdmin && (int)$existing['user_id'] !== $userId)) {
         http_response_code(403);
         echo json_encode(['success' => false, 'status' => 'error', 'message' => 'Berita tidak ditemukan atau Anda tidak berhak menghapusnya.']);
         return;
     }
 
+    if ($hasImageCols) {
+        if (!empty($existing['drive_folder_id'])) {
+            try {
+                DriveManager::getInstance()->deleteFolder($existing['drive_folder_id']);
+            } catch (Throwable $e) {}
+        } elseif (!empty($existing['drive_file_id'])) {
+            try {
+                DriveManager::getInstance()->deleteFile($existing['drive_file_id']);
+            } catch (Throwable $e) {}
+        }
+    }
+
+    $stmt = $pdo->prepare("DELETE FROM global_news WHERE id = :id");
+    $stmt->execute(['id' => $id]);
+
     echo json_encode(['success' => true, 'status' => 'success', 'message' => 'Berita global berhasil dihapus.']);
 }
+

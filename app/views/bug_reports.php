@@ -7,7 +7,7 @@ $activeMenu = 'bug-report';
 ob_start();
 ?>
 <div class="container-fluid p-0">
-    <div class="mb-4"><h4 class="fw-bold mb-1">Bug & Report</h4><p class="text-secondary small mb-0">Laporkan kendala agar dapat ditinjau tim pengelola.</p></div>
+    <div class="mb-4"><h4 class="fw-bold mb-1"><i class="bi bi-bug-fill"></i> Bug & Report</h4><p class="text-secondary small mb-0">Laporkan kendala agar dapat ditinjau tim pengelola.</p></div>
     <div id="bugReportAlert" aria-live="polite"></div>
     <?php if ($isReviewer): ?>
     <ul class="nav nav-tabs mb-3" id="bugReportTabs" role="tablist">
@@ -20,7 +20,7 @@ ob_start();
             <div class="card border-0 shadow-sm"><div class="card-body p-4">
                 <form id="bugReportForm">
                     <label for="bugDescription" class="form-label fw-semibold">Deskripsi Bug atau Kendala</label>
-                    <textarea class="form-control mb-3" id="bugDescription" name="description" rows="6" maxlength="10000" style="resize:none" required placeholder="Jelaskan langkah dan hasil yang terjadi."></textarea>
+                    <textarea class="form-control mb-3" id="bugDescription" name="description" rows="6" maxlength="10000" style="resize:none" required placeholder="Beritahu bug atau beritahu saran fitur!"></textarea>
                     <button class="btn btn-primary" id="submitBugReport" type="submit">Kirim Laporan</button>
                 </form>
             </div></div>

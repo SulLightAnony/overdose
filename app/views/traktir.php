@@ -18,9 +18,9 @@ ob_start();
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
             <h4 class="fw-bold text-dark mb-1">
-                <i class="bi bi-cup-hot-fill me-2 text-primary"></i>Traktir Developer
+                <i class="bi bi-cup-hot-fill me-2"></i>Traktir Developer
             </h4>
-            <p class="text-secondary small mb-0">Traktir developer beberapa rupiah untuk membantunya membayar hosting server bulanan! (BTW OPSIONAL GUYS)</p>
+            <p class="text-secondary small mb-0">Dengan mendonasikan segelintir rupiah kepada developer, kamu akan membantu seluruh pengembangan dan keberlangsungan aplikasi ini.</p>
         </div>
     </div>
 
@@ -53,7 +53,7 @@ ob_start();
                 </div>
 
                 <div class="bg-light p-3 rounded-3 text-secondary small">
-                    Terima kasih banyak atas apresiasi dan dukungan Anda untuk membantu server tetap beroperasi.
+                    Traktir developer beberapa rupiah untuk membantunya membayar hosting server bulanan! (BTW OPSIONAL GUYS)<br>Thank you! :3
                 </div>
             </div>
         </div>

@@ -126,22 +126,6 @@ ob_start();
                 </div>
                 <div class="card-body p-4">
 
-                    <!-- Dark Mode -->
-                    <div class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-light mb-3">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="bg-dark text-white rounded-3 p-2 fs-5">
-                                <i class="bi bi-moon-stars-fill"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold text-dark">Mode Gelap (Dark Mode)</h6>
-                                <small class="text-secondary">Ubah tema tampilan antarmuka menjadi lebih nyaman di mata.</small>
-                            </div>
-                        </div>
-                        <div class="form-check form-switch fs-4 mb-0">
-                            <input class="form-check-input cursor-pointer" type="checkbox" id="toggleDarkMode">
-                        </div>
-                    </div>
-
                     <!-- Notifikasi Push -->
                     <div class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-light mb-3">
                         <div class="d-flex align-items-center gap-3">

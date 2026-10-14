@@ -8,6 +8,17 @@
 document.addEventListener('DOMContentLoaded', () => {
     const params   = new URLSearchParams(window.location.search);
     const courseId = parseInt(params.get('course_id') || '0', 10);
+    const fromParam = params.get('from') === 'dashboard' ? 'dashboard' : 'schedule';
+    const backUrl   = `${BASE_URL}${fromParam}`;
+
+    const roomBackBtn = document.getElementById('roomBackBtn');
+    if (roomBackBtn) {
+        roomBackBtn.href = backUrl;
+    }
+    const roomInactiveBackBtn = document.getElementById('roomInactiveBackBtn');
+    if (roomInactiveBackBtn) {
+        roomInactiveBackBtn.href = backUrl;
+    }
 
     const elLoading       = document.getElementById('laLoading');
     const elContent       = document.getElementById('laContent');
@@ -73,11 +84,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!elStudentList) return;
         if (!Array.isArray(students) || students.length === 0) {
             elStudentList.innerHTML = `<div class="text-center text-muted py-4 small">Belum ada mahasiswa yang mendaftar.</div>`;
-            if (elStudentCount) elStudentCount.textContent = '0';
+            if (elStudentCount) {
+                elStudentCount.textContent = '0';
+                elStudentCount.style.display = 'none';
+            }
             return;
         }
 
-        if (elStudentCount) elStudentCount.textContent = String(students.length);
+        if (elStudentCount) {
+            elStudentCount.textContent = String(students.length);
+            elStudentCount.style.display = '';
+        }
 
         const defaultAvatar = (typeof BASE_URL !== 'undefined' ? BASE_URL : '') + 'public/assets/img/logo.png';
         let html = '';
@@ -111,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (elRegisteredHint) elRegisteredHint.style.display = '';
         } else {
             elBtnRegister.disabled = false;
-            elBtnRegister.innerHTML = 'Aku Lupa Absen😭';
+            elBtnRegister.innerHTML = 'AKU LUPA ABSEN😭';
             elBtnRegister.classList.remove('btn-outline-danger', 'btn-success');
             elBtnRegister.classList.add('btn-danger');
             if (elRegisteredHint) elRegisteredHint.style.display = 'none';
@@ -343,9 +360,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // - If from=schedule: user clicked button on schedule page -> DO NOT auto-register.
     // - If ref=share or opened directly via share link -> AUTO-REGISTER.
     // ------------------------------------------------------------------
-    const fromParam = params.get('from');
     const refParam  = params.get('ref');
-    const isSharedLink = (refParam === 'share') || (params.has('course_id') && fromParam !== 'schedule');
+    const isSharedLink = (refParam === 'share') || (params.has('course_id') && fromParam !== 'schedule' && fromParam !== 'dashboard');
 
     loadRoomData(isSharedLink);
 });

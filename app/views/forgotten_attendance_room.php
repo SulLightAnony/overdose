@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/../api/auth/gatekeeper.php';
+$from = (isset($_GET['from']) && $_GET['from'] === 'dashboard') ? 'dashboard' : 'schedule';
+$backUrl = BASE_URL . $from;
 $pageTitle  = 'Lupa Absensi';
-$activeMenu = 'schedule';
+$activeMenu = $from;
 ob_start();
 ?>
 <div class="container-fluid p-0" id="lupa-absensi-container">
@@ -14,7 +16,7 @@ ob_start();
                     <i class="bi bi-exclamation-circle text-warning fs-1 mb-2 d-block"></i>
                     <h6 class="fw-bold text-dark mb-1">Room Tidak Aktif</h6>
                     <p class="text-secondary small mb-4">Fitur lupa absen untuk matkul ini sedang tidak aktif!</p>
-                    <a href="<?= BASE_URL ?>schedule" class="btn btn-primary rounded-3 fw-semibold small px-4 py-2">Oke</a>
+                    <a href="<?= $backUrl ?>" id="roomInactiveBackBtn" class="btn btn-primary rounded-3 fw-semibold small px-4 py-2">Oke</a>
                 </div>
             </div>
         </div>
@@ -40,7 +42,7 @@ ob_start();
     <!-- Page Header -->
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
         <div class="d-flex flex-column gap-2">
-            <a href="<?= BASE_URL ?>schedule" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1 align-self-start mb-2" title="Kembali ke Jadwal">
+            <a href="<?= $backUrl ?>" id="roomBackBtn" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1 align-self-start mb-2" title="Kembali">
                 <i class="bi bi-arrow-left me-1"></i>Kembali
             </a>
             <div>
@@ -88,7 +90,7 @@ ob_start();
 
         <!-- Lupa Absensi Button -->
         <div class="text-center mb-4">
-            <button type="button" class="btn btn-danger btn-lg rounded-pill px-5 fw-bold shadow-sm" id="btnLupaAbsensi" style="min-width: 220px;">
+            <button type="button" class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm" id="btnLupaAbsensi" style="min-width: 180px; font-size: 1.0rem;">
                 AKU LUPA ABSEN😭
             </button>
             <p class="text-muted small mt-2 mb-0" id="laRegisteredHint" style="display: none;">
@@ -102,7 +104,7 @@ ob_start();
                 <h6 class="fw-bold text-dark mb-0">
                     <i class="bi bi-people-fill me-2 text-danger"></i>Daftar Mahasiswa yang Lupa Absensi
                 </h6>
-                <span class="badge bg-danger rounded-pill" id="laStudentCount">0</span>
+                <span class="badge bg-danger rounded-pill" id="laStudentCount" style="display: none;">0</span>
             </div>
             <div class="card-body p-3" id="laStudentList">
                 <div class="text-center text-muted py-4 small">

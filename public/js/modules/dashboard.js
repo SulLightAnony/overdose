@@ -52,6 +52,8 @@ function renderSchedule(containerId, courses, isToday = false) {
         const detailUrl = `${typeof BASE_URL !== 'undefined' ? BASE_URL : ''}course-detail?id=${c.courseId}&from=dashboard`;
         const borderBg = c.backgroundColor || '#3b82f6';
         const isAttendanceActive = isToday && isCourseAttendanceActive(c);
+        const hasTimePassed = isToday && hasCourseStartPassed(c);
+        const lupaAbsensiUrl = `${typeof BASE_URL !== 'undefined' ? BASE_URL : ''}lupa-absensi?course_id=${encodeURIComponent(c.courseId)}&from=dashboard`;
 
         html += `
             <a href="${detailUrl}" class="card border-0 shadow-sm rounded-3 overflow-hidden text-decoration-none"
@@ -60,16 +62,19 @@ function renderSchedule(containerId, courses, isToday = false) {
                 onmouseout="this.style.transform='translateX(0)'">
                 <div class="card-body p-3 d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="fw-bold mb-1 text-dark">${c.courseTitle}</h6>
-                        ${isAttendanceActive ? '<span class="badge bg-success text-white mb-1">Jam Aktif Absensi</span>' : ''}
+                        <h6 class="fw-bold mb-1 text-dark">${escapeHtml(c.courseTitle)}</h6>
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                            ${isAttendanceActive ? `<span class="badge text-white" style="cursor:pointer; background-color: #198754; transition: background-color 0.2s ease-in-out; display: inline-block;" onmouseover="this.style.backgroundColor='#15803d';" onmouseout="this.style.backgroundColor='#198754';" onclick="event.preventDefault();event.stopPropagation();window.open('https://akademik.polban.ac.id/','_blank');">Jam Aktif Absensi</span>` : ''}
+                            ${!isAttendanceActive && hasTimePassed ? `<span class="badge text-white" style="cursor:pointer; background-color: #dc3545; transition: background-color 0.2s ease-in-out; display: inline-block;" onmouseover="this.style.backgroundColor='#b91c1c';" onmouseout="this.style.backgroundColor='#dc3545';" onclick="event.preventDefault();event.stopPropagation();window.location.href='${lupaAbsensiUrl}';">Lupa Absensi</span>` : ''}
+                        </div>
                         <div class="small fw-medium text-secondary">
                             <i class="bi bi-clock me-1 text-primary"></i>${timeDisplay}
                             <span class="mx-1 text-muted">|</span>
-                            <i class="bi bi-geo-alt me-1 text-danger"></i>Kelas ${c.courseClass || '-'}</div>
+                            <i class="bi bi-geo-alt me-1 text-danger"></i>Kelas ${escapeHtml(c.courseClass || '-')}</div>
                     </div>
-                    <span class="badge ${c.courseType === 'Praktek' ? 'bg-warning text-dark' : 'bg-primary'} rounded-pill shadow-sm">${c.courseType || 'Teori'}</span>
+                    <span class="badge ${c.courseType === 'Praktek' ? 'bg-warning text-dark' : 'bg-primary'} rounded-pill shadow-sm">${escapeHtml(c.courseType || 'Teori')}</span>
                 </div>
-            </div>`;
+            </a>`;
     });
 
     container.innerHTML = html;
@@ -362,6 +367,19 @@ function isCourseAttendanceActive(course) {
     const startMinutes = startHour * 60 + startMinute;
     const endMinutes = endHour * 60 + endMinute;
     return currentMinutes >= startMinutes - 30 && currentMinutes < endMinutes;
+}
+
+function hasCourseStartPassed(course) {
+    if (!course.startTime) return false;
+    const timeParts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Jakarta',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23'
+    }).format(new Date(Date.now() + serverClockOffset)).split(':').map(Number);
+    const currentMinutes = timeParts[0] * 60 + timeParts[1];
+    const [startHour, startMinute] = course.startTime.split(':').map(Number);
+    return currentMinutes >= startHour * 60 + startMinute;
 }
 
 function updateDashboardAttendanceBadges() {
