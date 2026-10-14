@@ -78,8 +78,9 @@ try {
         $params = [];
 
         if ($search !== '') {
-            $whereClauses[] = '(r.description LIKE :search OR u.userName LIKE :search)';
-            $params['search'] = "%{$search}%";
+            $whereClauses[] = '(r.description LIKE :searchDesc OR u.userName LIKE :searchUser)';
+            $params['searchDesc'] = "%{$search}%";
+            $params['searchUser'] = "%{$search}%";
         }
 
         if ($statusFilter === 'in_progress') {

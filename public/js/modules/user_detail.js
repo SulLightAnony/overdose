@@ -135,7 +135,15 @@ document.addEventListener('DOMContentLoaded', () => {
             detailRoleBadge.innerHTML = renderRoleBadge(user.roleLevel);
             detailStatusBadge.innerHTML = renderStatusBadge(user);
 
-            const academicParts = [user.classGroup, user.studyProgram, user.batchYear ? `Angkatan ${user.batchYear}` : ''].filter(Boolean);
+            let classPart = '';
+            if (user.majorType && user.classGroup) {
+                classPart = `${user.majorType}-${user.classGroup}`;
+            } else if (user.classGroup) {
+                classPart = user.classGroup;
+            } else if (user.majorType) {
+                classPart = user.majorType;
+            }
+            const academicParts = [classPart, user.studyProgram, user.batchYear ? `Angkatan ${user.batchYear}` : ''].filter(Boolean);
             const academicStr = academicParts.length ? academicParts.join(' • ') : (user.majorType || 'Civitas Akademika');
             detailAcademic.innerHTML = `<i class="bi bi-mortarboard me-1"></i>${escapeHtml(academicStr)}`;
             detailJoined.innerHTML = `<i class="bi bi-calendar-event me-1"></i>Bergabung: ${escapeHtml(formatDate(user.createdAt))}`;
@@ -318,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Prev
         html += `<li class="page-item ${pg.currentPage <= 1 ? 'disabled' : ''}">
-            <button class="page-link rounded-pill px-3 me-1" data-page="${pg.currentPage - 1}">Sebelumnya</button>
+            <button class="page-link rounded-pill px-3 me-1" data-page="${pg.currentPage - 1}">&laquo;</button>
         </li>`;
 
         const start = Math.max(1, pg.currentPage - 2);
@@ -332,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Next
         html += `<li class="page-item ${pg.currentPage >= pg.totalPages ? 'disabled' : ''}">
-            <button class="page-link rounded-pill px-3 ms-1" data-page="${pg.currentPage + 1}">Selanjutnya</button>
+            <button class="page-link rounded-pill px-3 ms-1" data-page="${pg.currentPage + 1}">&raquo;</button>
         </li>`;
 
         html += `</ul>`;

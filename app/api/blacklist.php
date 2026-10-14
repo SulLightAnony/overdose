@@ -40,8 +40,10 @@ try {
             $params = [];
 
             if ($search !== '') {
-                $whereClauses[] = '(b.emailAddress LIKE :search OR b.reasonDescription LIKE :search OR u.userName LIKE :search)';
-                $params['search'] = "%{$search}%";
+                $whereClauses[] = '(b.emailAddress LIKE :searchEmail OR b.reasonDescription LIKE :searchReason OR u.userName LIKE :searchUser)';
+                $params['searchEmail'] = "%{$search}%";
+                $params['searchReason'] = "%{$search}%";
+                $params['searchUser'] = "%{$search}%";
             }
 
             if ($roleFilter !== '' && $roleFilter !== 'all') {

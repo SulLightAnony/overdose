@@ -27,9 +27,7 @@ ob_start();
                 </div>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-light text-dark rounded-pill px-3 py-2 fw-semibold shadow-sm">
-                    <i class="bi bi-shield-check me-1 text-primary"></i>Akses: <?= htmlspecialchars($userRole) ?>
-                </span>
+                
                 <button type="button" class="btn btn-light rounded-pill btn-sm px-3 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#addBlacklistModal">
                     <i class="bi bi-plus-circle me-1"></i>Tambah Blacklist
                 </button>
@@ -46,7 +44,7 @@ ob_start();
                         <div class="text-muted small fw-medium">Total Blacklist</div>
                         <h4 class="fw-bold text-dark mb-0 mt-1" id="statTotalBlacklist">0</h4>
                     </div>
-                    <div class="rounded-circle bg-danger bg-opacity-10 p-2 text-danger">
+                    <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-slash-circle fs-4"></i>
                     </div>
                 </div>
@@ -59,7 +57,7 @@ ob_start();
                         <div class="text-muted small fw-medium">Hard Block</div>
                         <h4 class="fw-bold text-danger mb-0 mt-1" id="statHardBlock">0</h4>
                     </div>
-                    <div class="rounded-circle bg-dark bg-opacity-10 p-2 text-dark">
+                    <div class="rounded-circle bg-dark bg-opacity-10 text-dark d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-shield-lock-fill fs-4"></i>
                     </div>
                 </div>
@@ -72,7 +70,7 @@ ob_start();
                         <div class="text-muted small fw-medium">Kunci Primordial</div>
                         <h4 class="fw-bold text-primary mb-0 mt-1" id="statPrimordial">0</h4>
                     </div>
-                    <div class="rounded-circle bg-primary bg-opacity-10 p-2 text-primary">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-shield-shaded fs-4"></i>
                     </div>
                 </div>
@@ -85,7 +83,7 @@ ob_start();
                         <div class="text-muted small fw-medium">Moderasi Sepuh</div>
                         <h4 class="fw-bold text-secondary mb-0 mt-1" id="statSepuh">0</h4>
                     </div>
-                    <div class="rounded-circle bg-secondary bg-opacity-10 p-2 text-secondary">
+                    <div class="rounded-circle bg-secondary bg-opacity-10 text-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-shield-check fs-4"></i>
                     </div>
                 </div>
@@ -243,7 +241,7 @@ ob_start();
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-dark rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-dark rounded-pill px-4 fw-semibold" id="btnSubmitBlacklist">
-                        <i class="bi bi-shield-plus me-1"></i>Simpan Blacklist
+                        <i class="bi bi-shield-plus me-1"></i>Blacklist Akun
                     </button>
                 </div>
             </form>
@@ -266,12 +264,8 @@ ob_start();
             </div>
             <div class="modal-body py-4">
                 <p class="text-dark mb-2">
-                    Apakah Anda yakin ingin menghapus alamat email <strong id="deleteBlacklistEmailText" class="text-primary">-</strong> dari daftar blacklist?
+                    Apakah kamu yakin ingin menghapus <strong id="deleteBlacklistEmailText" class="text-primary">-</strong> dari daftar blacklist dan kembali mengaktifkan akun ini?
                 </p>
-                <div class="alert alert-warning border-0 rounded-3 mb-0 small text-dark">
-                    <i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i>
-                    Jika email ini terdaftar pada akun pengguna di sistem, status akun pengguna tersebut akan otomatis disinkronkan kembali menjadi <strong>Aktif</strong>.
-                </div>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>

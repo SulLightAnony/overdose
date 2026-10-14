@@ -22,13 +22,8 @@ ob_start();
     <!-- Navigation Header & Breadcrumb -->
     <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
         <a href="<?= BASE_URL ?>user-management" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Manajemen Pengguna
+            <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-light text-dark rounded-pill px-3 py-1.5 fw-semibold border">
-                <i class="bi bi-shield-check me-1 text-primary"></i>Akses: <?= htmlspecialchars($userRole) ?>
-            </span>
-        </div>
     </div>
 
     <div id="userDetailAlert"></div>
@@ -39,15 +34,17 @@ ob_start();
             <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-4">
                 
                 <!-- Profile Avatar & Details -->
-                <div class="d-flex align-items-center gap-3.5 flex-grow-1">
-                    <img id="detailAvatar" src="<?= BASE_URL ?>public/assets/img/logo.png" alt="Avatar" class="rounded-circle border flex-shrink-0 shadow-sm" style="width: 80px; height: 80px; object-fit: cover;" referrerpolicy="no-referrer">
-                    <div>
+                <div class="d-flex align-items-center gap-4 flex-grow-1" style="min-width: 0;">
+                    <div class="d-flex flex-column align-items-center flex-shrink-0" style="min-width: 90px;">
+                        <img id="detailAvatar" src="<?= BASE_URL ?>public/assets/img/logo.png" alt="Avatar" class="rounded-circle border shadow-sm" style="width: 80px; height: 80px; object-fit: cover;" referrerpolicy="no-referrer">
+                        <div id="detailRoleBadge" class="mt-2 text-center w-100"></div>
+                    </div>
+                    <div class="flex-grow-1" style="min-width: 0;">
                         <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                            <h4 class="fw-bold text-dark mb-0" id="detailName">Memuat Pengguna...</h4>
-                            <span id="detailRoleBadge"></span>
+                            <h4 class="fw-bold text-dark mb-0" id="detailName" style="word-break: break-word;">Memuat Pengguna...</h4>
                             <span id="detailStatusBadge"></span>
                         </div>
-                        <div class="text-secondary small mb-1" id="detailEmail">-</div>
+                        <div class="text-secondary small mb-1" id="detailEmail" style="word-break: break-all;">-</div>
                         <div class="d-flex align-items-center gap-3 text-muted small flex-wrap" style="font-size: 0.8rem;">
                             <span id="detailAcademic"><i class="bi bi-mortarboard me-1"></i>-</span>
                             <span id="detailJoined"><i class="bi bi-calendar-event me-1"></i>-</span>
@@ -56,7 +53,7 @@ ob_start();
                 </div>
 
                 <!-- Admin Action Controls -->
-                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-md-end w-100 w-md-auto" id="userActionControls">
+                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-md-end flex-shrink-0" id="userActionControls">
                     <!-- Populated dynamically via JS -->
                 </div>
 
@@ -76,7 +73,7 @@ ob_start();
                         <div class="text-muted small fw-medium">Total Aktivitas</div>
                         <h4 class="fw-bold text-dark mb-0 mt-1" id="statTotalActivity">0</h4>
                     </div>
-                    <div class="rounded-circle bg-primary bg-opacity-10 p-2 text-primary">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-activity fs-4"></i>
                     </div>
                 </div>
@@ -89,7 +86,7 @@ ob_start();
                         <div class="text-muted small fw-medium">Tugas & Materi</div>
                         <h4 class="fw-bold text-dark mb-0 mt-1" id="statTasksMaterials">0</h4>
                     </div>
-                    <div class="rounded-circle bg-success bg-opacity-10 p-2 text-success">
+                    <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-journal-text fs-4"></i>
                     </div>
                 </div>
@@ -102,7 +99,7 @@ ob_start();
                         <div class="text-muted small fw-medium">Jawaban & Diskusi</div>
                         <h4 class="fw-bold text-dark mb-0 mt-1" id="statAnswersComments">0</h4>
                     </div>
-                    <div class="rounded-circle bg-info bg-opacity-10 p-2 text-info">
+                    <div class="rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-chat-quote fs-4"></i>
                     </div>
                 </div>
@@ -115,7 +112,7 @@ ob_start();
                         <div class="text-muted small fw-medium">Berita & Obrolan</div>
                         <h4 class="fw-bold text-dark mb-0 mt-1" id="statNewsChats">0</h4>
                     </div>
-                    <div class="rounded-circle bg-warning bg-opacity-10 p-2 text-warning">
+                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-newspaper fs-4"></i>
                     </div>
                 </div>
@@ -134,10 +131,10 @@ ob_start();
             </div>
         </div>
 
-        <!-- Filter & Search Toolbar -->
+        <!-- Filter & Search Toolbar (Tombol Reset telah dihapus) -->
         <div class="card-body p-3 p-md-4 border-bottom border-light">
             <div class="row g-2 align-items-center">
-                <div class="col-12 col-md-5">
+                <div class="col-12 col-md-6">
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 rounded-start-pill text-muted ps-3">
                             <i class="bi bi-search"></i>
@@ -158,16 +155,11 @@ ob_start();
                         <option value="bug_report">Bug Report</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-md-3">
                     <select class="form-select rounded-pill text-dark" id="sortActivity">
-                        <option value="newest">Tanggal: Terbaru</option>
-                        <option value="oldest">Tanggal: Terlama</option>
+                        <option value="newest">Terbaru</option>
+                        <option value="oldest">Terlama</option>
                     </select>
-                </div>
-                <div class="col-12 col-md-2 text-md-end">
-                    <button type="button" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold w-100" id="btnResetActivityFilters">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
-                    </button>
                 </div>
             </div>
         </div>

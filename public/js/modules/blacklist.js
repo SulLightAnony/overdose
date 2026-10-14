@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             } else {
                 blockTypeBadge = `
-                    <span class="badge bg-secondary bg-opacity-15 text-dark rounded-pill px-3 py-1 fw-medium">
+                    <span class="badge bg-secondary bg-opacity-15 text-white rounded-pill px-3 py-1 fw-medium">
                         <i class="bi bi-shield me-1"></i>Biasa
                     </span>
                 `;
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button type="button" class="btn btn-outline-danger rounded-pill btn-sm px-3 fw-semibold btn-delete-bl" 
                         data-id="${escapeHtml(item.blacklistId)}" 
                         data-email="${email}">
-                        <i class="bi bi-unlock-fill me-1"></i>Hapus
+                        <i class="bi bi-unlock-fill me-1"></i>Unblock
                     </button>
                 `;
             } else {
@@ -196,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                     <td class="py-3">
                         <div class="fw-medium text-dark small">${adminName}</div>
-                        <span class="badge bg-dark bg-opacity-10 text-dark rounded-pill px-2 py-0" style="font-size: 0.7rem;">${role}</span>
                     </td>
                     <td class="py-3 small text-muted">${formatDate(item.createdAt)}</td>
                     <td class="pe-4 py-3 text-end">${actionBtn}</td>

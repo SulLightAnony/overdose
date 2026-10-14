@@ -26,11 +26,6 @@ ob_start();
                     <small class="text-white-50">Kelola hak akses pengguna, status akun, dan moderasi komunitas secara terpusat.</small>
                 </div>
             </div>
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-light text-dark rounded-pill px-3 py-2 fw-semibold shadow-sm">
-                    <i class="bi bi-shield-check me-1 text-primary"></i>Akses: <?= htmlspecialchars($userRole) ?>
-                </span>
-            </div>
         </div>
     </div>
 
@@ -43,7 +38,7 @@ ob_start();
                         <div class="text-muted small fw-medium">Total Pengguna</div>
                         <h4 class="fw-bold text-dark mb-0 mt-1" id="statTotalUsers">0</h4>
                     </div>
-                    <div class="rounded-circle bg-primary bg-opacity-10 p-2 text-primary">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-people fs-4"></i>
                     </div>
                 </div>
@@ -56,7 +51,7 @@ ob_start();
                         <div class="text-muted small fw-medium">Akun Aktif</div>
                         <h4 class="fw-bold text-success mb-0 mt-1" id="statActiveUsers">0</h4>
                     </div>
-                    <div class="rounded-circle bg-success bg-opacity-10 p-2 text-success">
+                    <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-check-circle fs-4"></i>
                     </div>
                 </div>
@@ -69,7 +64,7 @@ ob_start();
                         <div class="text-muted small fw-medium">Akun Diblokir</div>
                         <h4 class="fw-bold text-danger mb-0 mt-1" id="statBlockedUsers">0</h4>
                     </div>
-                    <div class="rounded-circle bg-danger bg-opacity-10 p-2 text-danger">
+                    <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-slash-circle fs-4"></i>
                     </div>
                 </div>
@@ -79,10 +74,10 @@ ob_start();
             <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted small fw-medium">Moderator Sepuh</div>
+                        <div class="text-muted small fw-medium">Role = Sepuh</div>
                         <h4 class="fw-bold text-secondary mb-0 mt-1" id="statSepuhUsers">0</h4>
                     </div>
-                    <div class="rounded-circle bg-secondary bg-opacity-10 p-2 text-secondary">
+                    <div class="rounded-circle bg-secondary bg-opacity-10 text-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="bi bi-shield-shaded fs-4"></i>
                     </div>
                 </div>
@@ -92,11 +87,11 @@ ob_start();
 
     <div id="userManagementAlert"></div>
 
-    <!-- Filter & Search Toolbar -->
+    <!-- Filter & Search Toolbar (Tombol Reset telah dihapus) -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-3 p-md-4">
             <div class="row g-2 align-items-center">
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-5">
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 rounded-start-pill text-muted ps-3">
                             <i class="bi bi-search"></i>
@@ -119,7 +114,7 @@ ob_start();
                         <option value="blocked">Diblokir</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-2">
+                <div class="col-12 col-md-3">
                     <select class="form-select rounded-pill text-dark" id="sortUsers">
                         <option value="newest">Terbaru</option>
                         <option value="oldest">Terlama</option>
@@ -127,11 +122,6 @@ ob_start();
                         <option value="name_desc">Nama (Z-A)</option>
                         <option value="role">Urutan Role</option>
                     </select>
-                </div>
-                <div class="col-6 col-md-2 text-end">
-                    <button type="button" class="btn btn-outline-dark rounded-pill btn-sm px-3 fw-semibold w-100" id="btnResetFilters">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
-                    </button>
                 </div>
             </div>
         </div>
@@ -143,8 +133,7 @@ ob_start();
             <table class="table table-hover align-middle mb-0" id="usersTable">
                 <thead class="table-light border-bottom">
                     <tr>
-                        <th class="ps-4 py-3" style="min-width: 260px;">Pengguna</th>
-                        <th style="min-width: 140px;">Role</th>
+                        <th class="ps-4 py-3" style="min-width: 280px;">Pengguna</th>
                         <th style="min-width: 160px;">Status & Moderasi</th>
                         <th style="min-width: 130px;">Bergabung</th>
                         <th class="text-end pe-4" style="min-width: 200px;">Aksi</th>
@@ -152,7 +141,7 @@ ob_start();
                 </thead>
                 <tbody id="usersTableBody">
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-5">
+                        <td colspan="4" class="text-center text-muted py-5">
                             <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
                             Memuat data pengguna...
                         </td>

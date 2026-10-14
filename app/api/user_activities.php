@@ -184,8 +184,9 @@ try {
     }
 
     if ($search !== '') {
-        $whereOuter[] = '(sub.itemTitle LIKE :search OR sub.itemSnippet LIKE :search)';
-        $outerParams['search'] = "%{$search}%";
+        $whereOuter[] = '(sub.itemTitle LIKE :searchTitle OR sub.itemSnippet LIKE :searchSnippet)';
+        $outerParams['searchTitle'] = "%{$search}%";
+        $outerParams['searchSnippet'] = "%{$search}%";
     }
 
     $whereOuterSql = implode(' AND ', $whereOuter);

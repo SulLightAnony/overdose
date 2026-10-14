@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!users.length) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-5">
+                        <td colspan="4" class="text-center text-muted py-5">
                             <i class="bi bi-people fs-2 text-secondary opacity-50 d-block mb-2"></i>
                             <h6 class="fw-semibold text-dark mb-1">Pengguna Tidak Ditemukan</h6>
                             <p class="small text-muted mb-0">Tidak ada pengguna yang cocok dengan kriteria pencarian atau filter.</p>
@@ -165,7 +165,17 @@ document.addEventListener('DOMContentLoaded', () => {
             tableBody.innerHTML = users.map(user => {
                 const uId = Number(user.userId);
                 const avatar = user.avatarUrl || defaultAvatar;
-                const academicParts = [user.classGroup, user.studyProgram].filter(Boolean);
+
+                // Format identitas akademik dengan menyertakan majorType di depan kelas
+                let classPart = '';
+                if (user.majorType && user.classGroup) {
+                    classPart = `${user.majorType}-${user.classGroup}`;
+                } else if (user.classGroup) {
+                    classPart = user.classGroup;
+                } else if (user.majorType) {
+                    classPart = user.majorType;
+                }
+                const academicParts = [classPart, user.studyProgram].filter(Boolean);
                 const academicStr = academicParts.length ? academicParts.join(' - ') : (user.majorType || 'Civitas Akademika');
                 const dateStr = formatDate(user.createdAt);
 
@@ -173,17 +183,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     <tr class="user-row" data-user-id="${uId}" style="cursor: pointer;">
                         <td class="ps-4 py-3">
                             <div class="d-flex align-items-center gap-3">
-                                <img src="${escapeHtml(avatar)}" alt="${escapeHtml(user.userName)}" class="rounded-circle border flex-shrink-0" style="width: 42px; height: 42px; object-fit: cover;" referrerpolicy="no-referrer" onerror="this.src='${defaultAvatar}'">
-                                <div class="min-w-0">
-                                    <a href="${BASE_URL}user-detail?id=${uId}" class="fw-bold text-dark text-decoration-none text-truncate d-block user-link" style="font-size: 0.88rem;" title="${escapeHtml(user.userName)}">
+                                <!-- Foto profil dengan badge level di bawahnya (tengah) -->
+                                <div class="d-flex flex-column align-items-center flex-shrink-0" style="min-width: 68px;">
+                                    <img src="${escapeHtml(avatar)}" alt="${escapeHtml(user.userName)}" class="rounded-circle border" style="width: 44px; height: 44px; object-fit: cover;" referrerpolicy="no-referrer" onerror="this.src='${defaultAvatar}'">
+                                    <div class="mt-1 text-center w-100">
+                                        ${renderRoleBadge(user.roleLevel)}
+                                    </div>
+                                </div>
+                                <!-- Informasi nama & akademik pengguna: memanjang ke kanan dan fleksibel membungkus jika sempit -->
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <a href="${BASE_URL}user-detail?id=${uId}" class="fw-bold text-dark text-decoration-none user-link d-inline-block" style="font-size: 0.88rem; word-break: break-word;" title="${escapeHtml(user.userName)}">
                                         ${escapeHtml(user.userName)}
                                     </a>
-                                    <div class="text-muted small text-truncate" style="font-size: 0.78rem;">${escapeHtml(user.emailAddress)}</div>
+                                    <div class="text-muted small" style="font-size: 0.78rem; word-break: break-all;">${escapeHtml(user.emailAddress)}</div>
                                     <div class="text-secondary" style="font-size: 0.72rem;">${escapeHtml(academicStr)}</div>
                                 </div>
                             </div>
                         </td>
-                        <td>${renderRoleBadge(user.roleLevel)}</td>
                         <td>${renderStatusBadge(user)}</td>
                         <td class="text-muted small">${escapeHtml(dateStr)}</td>
                         <td class="text-end pe-4" onclick="event.stopPropagation();">
