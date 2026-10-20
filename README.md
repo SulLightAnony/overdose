@@ -15,6 +15,7 @@
   <img src="https://img.shields.io/badge/Google_Drive-API_Integration-34A853?style=for-the-badge&logo=googledrive&logoColor=white" alt="Google Drive API">
   <img src="https://img.shields.io/badge/Public_Demo-Account_Ready-0284c7?style=for-the-badge" alt="Demo Ready">
   <img src="https://img.shields.io/badge/Architecture-Clean_MVC-10b981?style=for-the-badge" alt="Clean MVC">
+  <img src="https://img.shields.io/badge/License-GPLv3-blue?style=for-the-badge" alt="License: GPLv3">
 </p>
 
 ---
@@ -122,59 +123,75 @@ Overdose implements a strict, tamper-resistant authorization model designed to p
 
 ## Visual Showcase (Screenshots Gallery)
 
-> [!NOTE]
-> **Instructions for the Repository Maintainer:**
-> Capture screenshots of the running application and place the image files in the directory `docs/screenshots/` matching the filenames below. Once added, the screenshots will automatically render in this section.
-
-<div align="center">
-
 ### 1. Campus Login & Secure OAuth Portal
-`docs/screenshots/01_login.png`
-*Demonstrates the minimalist, branded login portal with Google Workspace authentication.*
+<p align="center">
+  <img src="docs/screenshots/01_login.png" alt="Campus Login & Secure OAuth Portal" width="100%">
+  <br>
+  <em>Minimalist, campus-branded login portal with Google Workspace authentication.</em>
+</p>
 
 ---
 
 ### 2. Central Academic Dashboard
-`docs/screenshots/02_dashboard.png`
-*Displays urgent tasks, completion stats, current semester filter, and motivational pro-tips.*
+<p align="center">
+  <img src="docs/screenshots/02_dashboard.png" alt="Central Academic Dashboard" width="100%">
+  <br>
+  <em>Displays urgent tasks, metric counters, semester filter, and curated daily pro-tips.</em>
+</p>
 
 ---
 
 ### 3. Semester & Course Navigator
-`docs/screenshots/03_courses.png`
-*Showcases the color-coded academic directory, lecture schedule, and course details.*
+<p align="center">
+  <img src="docs/screenshots/03_courses.png" alt="Semester & Course Navigator" width="100%">
+  <br>
+  <em>Color-coded academic directory, lecture timetable, and lecturer contact channels.</em>
+</p>
 
 ---
 
 ### 4. Assignment Center, Shared Answers & Discussion
-`docs/screenshots/04_task_detail.png`
-*Demonstrates structured assignment briefs, peer shared answers, files, and discussion threads.*
+<p align="center">
+  <img src="docs/screenshots/04_task_detail.png" alt="Assignment Center & Shared Answers" width="100%">
+  <br>
+  <em>Structured assignment briefs, peer shared answers, downloadable files, and threaded discussion.</em>
+</p>
 
 ---
 
 ### 5. Forgotten Attendance Room ("Lupa Absensi")
-`docs/screenshots/05_forgotten_attendance.png`
-*Displays the active attendance room with one-click clipboard export for lecturers.*
+<p align="center">
+  <img src="docs/screenshots/05_forgotten_attendance.png" alt="Forgotten Attendance Room" width="100%">
+  <br>
+  <em>Live attendance room with one-click standardized clipboard export for lecturers.</em>
+</p>
 
 ---
 
 ### 6. Global Live Community Chat & Bulletin
-`docs/screenshots/06_global_chat.png`
-*Shows the full-width live community chat with thread replies and campus bulletin.*
+<p align="center">
+  <img src="docs/screenshots/06_global_chat.png" alt="Global Live Community Chat" width="100%">
+  <br>
+  <em>Real-time community chat with thread replies, message editing, and campus announcements.</em>
+</p>
 
 ---
 
 ### 7. User Management & Activity Audit Trail
-`docs/screenshots/07_user_management.png`
-*Demonstrates student directory management, role badges, and activity history tracking.*
+<p align="center">
+  <img src="docs/screenshots/07_user_management.png" alt="User Management & Audit Trail" width="100%">
+  <br>
+  <em>Student directory administration, centered role badges, and activity history tracking.</em>
+</p>
 
 ---
 
 ### 8. Security & Email Blacklist Management
-`docs/screenshots/08_blacklist.png`
-*Shows the dual-tier email blocking console with real-time account status synchronization.*
-
-</div>
+<p align="center">
+  <img src="docs/screenshots/08_blacklist.png" alt="Security & Email Blacklist" width="100%">
+  <br>
+  <em>Dual-tier email moderation console with automated account synchronization.</em>
+</p>
 
 ---
 
@@ -236,7 +253,7 @@ If Overdose brings value to your academic journey or inspires your software arch
 
 ## License
 
-This project is distributed under the **MIT License**. See the `LICENSE` file for more details.
+This project is licensed under the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for more details.
 
 ---
 
